@@ -3,9 +3,10 @@ package router
 import (
 	"encoding/json"
 	"net/http"
+	"welog/middleware"
 )
 
-func NewRouter() *http.ServeMux {
+func NewRouter() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -14,5 +15,5 @@ func NewRouter() *http.ServeMux {
 			"message": "pong",
 		})
 	})
-	return mux
+	return middleware.Chain(mux, middleware.CorsMiddleware)
 }
