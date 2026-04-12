@@ -7,9 +7,9 @@ import (
 )
 
 type User struct {
-	ID              uint   `gorm:"primaryKey"`
-	Email           string `gorm:"type:varchar(100);unique;not null"`
-	Hashed_password string `gorm:"type:varchar(255)"`
+	ID             uint    `gorm:"primaryKey"`
+	Email          string  `gorm:"type:varchar(100);unique;not null"`
+	HashedPassword *string `gorm:"type:varchar(255)"`
 
 	Nickname   string `gorm:"type:varchar(50);not null"`
 	Provider   string `gorm:"type:varchar(20);not null;default:'google'"`
@@ -20,5 +20,5 @@ type User struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	DeletedAt gorm.DeletedAt
 }
