@@ -3,11 +3,20 @@ package router
 import (
 	"encoding/json"
 	"net/http"
+	"welog/internal/auth"
+	"welog/internal/user"
 	"welog/pkg/middleware"
+
+	"gorm.io/gorm"
 )
 
-func NewRouter() http.Handler {
+func NewRouter(db *gorm.DB) http.Handler {
 	mux := http.NewServeMux()
+
+	userRepo := user.NewUserRepository(db)
+	authService := auth.NewAuthService(userRepo)
+	authHandler := auth.NewAuthHandler(authService)
+
 	mux.HandleFunc("GET /api/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
@@ -15,5 +24,7 @@ func NewRouter() http.Handler {
 			"message": "pong",
 		})
 	})
+
+	mux.HandleFunc("POST /api/auth/google", authHandler.GoogleLogin)
 	return middleware.Chain(mux, middleware.CorsMiddleware)
 }
