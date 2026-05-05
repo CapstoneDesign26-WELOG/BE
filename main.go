@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"welog/internal/router"
+	"welog/pkg/database"
 
 	"github.com/joho/godotenv"
 )
@@ -14,7 +15,11 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("경고: .env 파일을 찾을 수 없습니다.")
 	}
-	r := router.NewRouter()
+	dsn := os.Getenv("DSN")
+	db := database.ConnectDB(dsn)
+	jwtSecret := os.Getenv("JWT_SECRET")
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	r := router.NewRouter(db, jwtSecret, googleClientID)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

@@ -6,21 +6,24 @@ import (
 	"welog/internal/model"
 	"welog/internal/user"
 
-	"cloud.google.com/go/auth/credentials/idtoken"
+	"google.golang.org/api/idtoken"
 )
 
 type AuthService struct {
-	UserRepo *user.UserRepository
+	UserRepo       *user.UserRepository
+	jwtSecret      []byte
+	googleClientID string
 }
 
-func NewAuthService(userRepo *user.UserRepository) *AuthService {
-	return &AuthService{UserRepo: userRepo}
+func NewAuthService(userRepo *user.UserRepository, jwtSecret string, googleClientID string) *AuthService {
+	return &AuthService{UserRepo: userRepo,
+		jwtSecret:      []byte(jwtSecret),
+		googleClientID: googleClientID,
+	}
 }
 
 func (s *AuthService) ProcessGoogleLogin(ctx context.Context, googleToken string) (string, *model.User, error) {
-	googleClientID := ""
-
-	payload, err := idtoken.Validate(ctx, googleToken, googleClientID)
+	payload, err := idtoken.Validate(ctx, googleToken, s.googleClientID)
 	if err != nil {
 		return "", nil, errors.New("invalid google token")
 	}
@@ -37,7 +40,7 @@ func (s *AuthService) ProcessGoogleLogin(ctx context.Context, googleToken string
 		newUser := &model.User{
 			Email:      email,
 			Provider:   "google",
-			ProviderID: userObj.ProviderID,
+			ProviderID: providerID,
 			Nickname:   "User_" + providerID[:6],
 			Role:       "USER",
 		}
@@ -47,10 +50,10 @@ func (s *AuthService) ProcessGoogleLogin(ctx context.Context, googleToken string
 		userObj = newUser
 	}
 
-	accessToekn, err := GenerateToken(userObj.ID, userObj.Email, userObj.Role)
+	accessToken, err := GenerateToken(userObj.ID, userObj.Email, userObj.Role, s.jwtSecret)
 	if err != nil {
 		return "", nil, err
 	}
 
-	return accessToekn, userObj, nil
+	return accessToken, userObj, nil
 }

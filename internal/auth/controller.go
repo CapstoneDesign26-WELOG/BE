@@ -14,7 +14,7 @@ func NewAuthHandler(authService *AuthService) *AuthHandler {
 }
 
 type GoogleLoginRequest struct {
-	GoogleToken string `json: "google_token"`
+	GoogleToken string `json:"google_token"`
 }
 
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {

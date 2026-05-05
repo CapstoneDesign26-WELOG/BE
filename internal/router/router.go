@@ -10,11 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewRouter(db *gorm.DB) http.Handler {
+func NewRouter(db *gorm.DB, jwtSecret string, googleClientID string) http.Handler {
 	mux := http.NewServeMux()
 
 	userRepo := user.NewUserRepository(db)
-	authService := auth.NewAuthService(userRepo)
+	authService := auth.NewAuthService(userRepo, jwtSecret, googleClientID)
 	authHandler := auth.NewAuthHandler(authService)
 
 	mux.HandleFunc("GET /api/ping", func(w http.ResponseWriter, r *http.Request) {
