@@ -15,8 +15,20 @@ type User struct {
 	Provider   string `gorm:"type:varchar(20);not null;default:'google'"`
 	ProviderID string `gorm:"type:varchar(255);uniqueIndex;not null"`
 	TokenCount int    `gorm:"default:0"`
+	Role       string `gorm:"type:varchar(10);not null;default:'USER'"`
 
 	Preferences []UserPreference `gorm:"foreignKey:UserID"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt
+}
+
+type UserPreference struct {
+	ID     uint `gorm:"primaryKey"`
+	UserID uint `gorm:"index;not null"`
+	AIType uint `gorm:"not null"`
+	Score  int  `gorm:"not null;default:0"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
