@@ -3,7 +3,7 @@ package router
 import (
 	"encoding/json"
 	"net/http"
-	"welog/middleware"
+	"welog/pkg/middleware"
 )
 
 func NewRouter() http.Handler {

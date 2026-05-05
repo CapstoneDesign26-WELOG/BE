@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"welog/router"
+	"welog/internal/router"
 
 	"github.com/joho/godotenv"
 )
