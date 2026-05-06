@@ -24,7 +24,7 @@ func NewRouter(db *gorm.DB, jwtSecret string, googleClientID string) http.Handle
 			"message": "pong",
 		})
 	})
-
 	mux.HandleFunc("POST /api/auth/google", authHandler.GoogleLogin)
+
 	return middleware.Chain(mux, middleware.CorsMiddleware)
 }
