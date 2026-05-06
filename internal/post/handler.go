@@ -36,7 +36,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postType uint = 1
-	if req.Type == "PRIVATE" {
+	if req.Type == "PUBLIC" {
 		postType = 2
 	}
 
@@ -53,7 +53,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/posts&type=PUBLIC&page=1&limit=20
+// GET /api/posts?type=PUBLIC&page=1&limit=20
 func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
 	postType := r.URL.Query().Get("type")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))

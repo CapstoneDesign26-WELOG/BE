@@ -43,8 +43,10 @@ func (s *PostService) GetPosts(postType string, page, limit int) ([]model.Post, 
 	}
 	offset := (page - 1) * limit
 
-	var parsedType uint = 1
-	if postType == "PUBLIC" {
+	var parsedType uint = 0
+	if postType == "PRIVATE" {
+		parsedType = 1
+	} else if postType == "PUBLIC" {
 		parsedType = 2
 	}
 
