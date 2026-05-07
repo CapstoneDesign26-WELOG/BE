@@ -8,16 +8,16 @@ import (
 )
 
 type UserRepository struct {
-	DB *gorm.DB
+	db *gorm.DB
 }
 
 func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{DB: db}
+	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	var user model.User
-	err := r.DB.Where("email = ?", email).First(&user).Error
+	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -28,5 +28,9 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 }
 
 func (r *UserRepository) Create(user *model.User) error {
-	return r.DB.Create(user).Error
+	return r.db.Create(user).Error
+}
+
+func (r *UserRepository) UpdateTokenBelowThreshold(threshold, targetCount uint) error {
+	return r.db.Model(&model.User{}).Where("token_count < ?", threshold).Update("token_count", targetCount).Error
 }
