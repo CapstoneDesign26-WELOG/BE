@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"welog/internal/auth"
+	"welog/internal/scheduler"
 	"welog/internal/user"
 	"welog/pkg/middleware"
 
@@ -14,8 +15,12 @@ func NewRouter(db *gorm.DB, jwtSecret string, googleClientID string) http.Handle
 	mux := http.NewServeMux()
 
 	userRepo := user.NewUserRepository(db)
+	userService := user.NewUserService(userRepo)
 	authService := auth.NewAuthService(userRepo, jwtSecret, googleClientID)
 	authHandler := auth.NewAuthHandler(authService)
+	appScheduler := scheduler.NewScheduler(userService)
+	appScheduler.Start()
+	defer appScheduler.Stop()
 
 	mux.HandleFunc("GET /api/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
