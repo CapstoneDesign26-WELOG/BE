@@ -11,7 +11,9 @@ type PostRepository struct {
 }
 
 func NewPostRepository(db *gorm.DB) *PostRepository {
-	return &PostRepository{db: db}
+	return &PostRepository{
+		db: db,
+	}
 }
 
 func (r *PostRepository) Create(post *model.Post) error {
