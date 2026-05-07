@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"log"
+	"time"
 	"welog/internal/user"
 
 	"github.com/robfig/cron/v3"
@@ -13,7 +14,16 @@ type Scheduler struct {
 }
 
 func NewScheduler(userService *user.UserService) *Scheduler {
-	c := cron.New()
+	seoulTime, err := time.LoadLocation("Asia/Seoul")
+	if err != nil {
+		log.Println("타임존 로드 실패, 기본 시간대를 사용합니다:", err)
+		return &Scheduler{
+			cron:        cron.New(),
+			userService: userService}
+	}
+
+	c := cron.New(cron.WithLocation(seoulTime))
+
 	return &Scheduler{
 		cron:        c,
 		userService: userService,
