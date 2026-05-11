@@ -4,19 +4,24 @@ import (
 	"context"
 	"errors"
 	"welog/internal/model"
-	"welog/internal/user"
 
 	"google.golang.org/api/idtoken"
 )
 
+type UserRepository interface {
+	FindByEmail(email string) (*model.User, error)
+	Create(user *model.User) error
+}
+
 type AuthService struct {
-	UserRepo       *user.UserRepository
+	UserRepo       UserRepository
 	jwtSecret      []byte
 	googleClientID string
 }
 
-func NewAuthService(userRepo *user.UserRepository, jwtSecret string, googleClientID string) *AuthService {
-	return &AuthService{UserRepo: userRepo,
+func NewAuthService(userRepo UserRepository, jwtSecret string, googleClientID string) *AuthService {
+	return &AuthService{
+		UserRepo:       userRepo,
 		jwtSecret:      []byte(jwtSecret),
 		googleClientID: googleClientID,
 	}

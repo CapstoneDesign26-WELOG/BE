@@ -3,19 +3,27 @@ package post
 import (
 	"errors"
 	"welog/internal/model"
+	"welog/internal/user"
 )
 
 type PostService struct {
-	repo *PostRepository
+	repo        *PostRepository
+	userService *user.UserService
 	// UserRepo(토큰 차감), AI Service(비동기 호출) 추가 예정
 }
 
-func NewPostService(repo *PostRepository) *PostService {
-	return &PostService{repo: repo}
+func NewPostService(repo *PostRepository, userService *user.UserService) *PostService {
+	return &PostService{
+		repo:        repo,
+		userService: userService,
+	}
 }
 
 func (s *PostService) CreatePost(userID uint, title, description string, postType uint) (*model.Post, error) {
-	// 잔여 토큰 확인 후 1회 차감 로직 추가 예정
+	var tokenCost uint = 1
+	if err := s.userService.ConsumeToken(userID, tokenCost); err != nil {
+		return nil, err
+	}
 
 	post := &model.Post{
 		UserID:      userID,
@@ -26,6 +34,7 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 	}
 
 	if err := s.repo.Create(post); err != nil {
+		// 실패시 토큰 되돌려주는 로직 추가 예정
 		return nil, err
 	}
 

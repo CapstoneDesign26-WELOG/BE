@@ -6,6 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	PostTypePrivate uint = 1
+	PostTypePublic  uint = 2
+)
+
 type Post struct {
 	ID          uint   `gorm:"primaryKey"`
 	UserID      uint   `gorm:"index;not null"`

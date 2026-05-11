@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"welog/internal/auth"
+	"welog/internal/model"
 )
 
 type PostHandler struct {
@@ -35,9 +36,9 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var postType uint = 1
+	postType := model.PostTypePrivate
 	if req.Type == "PUBLIC" {
-		postType = 2
+		postType = model.PostTypePublic
 	}
 
 	post, err := h.service.CreatePost(userClaims.UserID, req.Title, req.Description, postType)

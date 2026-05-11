@@ -17,8 +17,8 @@ func ConnectDB(dsn string) *gorm.DB {
 	log.Println("🔄 DB 마이그레이션 진행 중...")
 	err = db.AutoMigrate(
 		&model.User{},
-		// &model.Post{}
-		// &model.Comment{}
+		&model.Post{},
+		&model.Comment{},
 	)
 	if err != nil {
 		log.Fatalf("❌ DB 마이그레이션 실패: %v", err)
