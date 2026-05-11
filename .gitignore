@@ -33,3 +33,5 @@ go.work.sum
 
 # docker file
 docker-compose.yml
+
+.DS_Store
