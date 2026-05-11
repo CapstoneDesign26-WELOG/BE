@@ -36,10 +36,9 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 		})
 	})
 
-	// 각 도메인에게 라우팅 전권 위임
 	authHandler.RegisterRoutes(mux)
-	userHandler.RegisterRoutes(mux)
-	postHandler.RegisterRoutes(mux)
+	userHandler.RegisterRoutes(mux, []byte(jwtSecret))
+	postHandler.RegisterRoutes(mux, []byte(jwtSecret))
 
 	return mux, appScheduler.Stop
 }
