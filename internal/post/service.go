@@ -12,20 +12,17 @@ type PostService struct {
 	// UserRepo(토큰 차감), AI Service(비동기 호출) 추가 예정
 }
 
-func NewPostService(repo *PostRepository) *PostService {
-	return &PostService{repo: repo}
+func NewPostService(repo *PostRepository, userService *user.UserService) *PostService {
+	return &PostService{
+		repo:        repo,
+		userService: userService,
+	}
 }
 
 func (s *PostService) CreatePost(userID uint, title, description string, postType uint) (*model.Post, error) {
-	userObj, err := s.userService.GetUser(userID)
-	if err != nil {
+	var tokenCost uint = 1
+	if err := s.userService.ConsumeToken(userID, tokenCost); err != nil {
 		return nil, err
-	}
-
-	if userObj.TokenCount > 0 {
-		s.userService.ConsumeToken(userID, userObj.TokenCount-1)
-	} else {
-		return nil, errors.New("토큰이 부족합니다")
 	}
 
 	post := &model.Post{
@@ -37,6 +34,7 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 	}
 
 	if err := s.repo.Create(post); err != nil {
+		// 실패시 토큰 되돌려주는 로직 추가 예정
 		return nil, err
 	}
 
