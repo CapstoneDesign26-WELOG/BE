@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) *http.ServeMux {
+func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, func()) {
 	mux := http.NewServeMux()
 
 	userRepo := user.NewUserRepository(db)
@@ -27,7 +27,6 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) *http.ServeMux {
 
 	appScheduler := scheduler.NewScheduler(userService)
 	appScheduler.Start()
-	defer appScheduler.Stop()
 
 	mux.HandleFunc("GET /api/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -42,5 +41,5 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) *http.ServeMux {
 	userHandler.RegisterRoutes(mux)
 	postHandler.RegisterRoutes(mux)
 
-	return mux
+	return mux, appScheduler.Stop
 }

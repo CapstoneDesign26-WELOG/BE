@@ -19,7 +19,9 @@ func main() {
 	db := database.ConnectDB(dsn)
 	jwtSecret := os.Getenv("JWT_SECRET")
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
-	r := router.NewRouter(db, jwtSecret, googleClientID)
+	r, cleanup := router.NewRouter(db, jwtSecret, googleClientID)
+	defer cleanup()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
