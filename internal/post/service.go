@@ -133,7 +133,12 @@ func (s *PostService) DeletePost(userID, postID uint) error {
 		return err
 	}
 
-	if post.UserID != userID {
+	reqUser, err := s.userService.GetUser(userID)
+	if err != nil {
+		return err
+	}
+
+	if post.UserID != userID && reqUser.Role != "ADMIN" {
 		return errors.New("게시글을 삭제할 권한이 없습니다")
 	}
 
