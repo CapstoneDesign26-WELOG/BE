@@ -18,6 +18,10 @@ func (s *UserService) ConsumeToken(userID, amount uint) error {
 	return s.repo.ConsumeToken(userID, amount)
 }
 
+func (s *UserService) RefundToken(userID, amount uint) error {
+	return s.repo.RefundToken(userID, amount)
+}
+
 func (s *UserService) RefillDailyTokens() error {
 	const threshold uint = 3
 	const targetCount uint = 3

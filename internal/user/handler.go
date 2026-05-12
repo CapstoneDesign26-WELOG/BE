@@ -25,7 +25,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.userService.GetUser(userClaims.UserID)
-	if err != nil {
+	if err != nil || user == nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
