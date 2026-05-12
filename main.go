@@ -7,6 +7,7 @@ import (
 	"os"
 	"welog/internal/router"
 	"welog/pkg/database"
+	"welog/pkg/middleware"
 
 	"github.com/joho/godotenv"
 )
@@ -21,6 +22,8 @@ func main() {
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
 	r, cleanup := router.NewRouter(db, jwtSecret, googleClientID)
 	defer cleanup()
+
+	r = middleware.CorsMiddleware(r)
 
 	port := os.Getenv("PORT")
 	if port == "" {
