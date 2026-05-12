@@ -1,21 +1,28 @@
 package post
 
 import (
+	"encoding/json"
 	"errors"
+	"log"
+	"welog/internal/comment"
 	"welog/internal/model"
 	"welog/internal/user"
+	"welog/pkg/ai"
 )
 
 type PostService struct {
-	repo        *PostRepository
-	userService *user.UserService
-	// UserRepo(토큰 차감), AI Service(비동기 호출) 추가 예정
+	repo           *PostRepository
+	userService    *user.UserService
+	commentService *comment.CommentService
+	clovaClient    *ai.ClovaClient
 }
 
-func NewPostService(repo *PostRepository, userService *user.UserService) *PostService {
+func NewPostService(repo *PostRepository, userService *user.UserService, commentService *comment.CommentService, clovaClient *ai.ClovaClient) *PostService {
 	return &PostService{
-		repo:        repo,
-		userService: userService,
+		repo:           repo,
+		userService:    userService,
+		commentService: commentService,
+		clovaClient:    clovaClient,
 	}
 }
 
@@ -38,9 +45,46 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 		return nil, err
 	}
 
-	// 비동기로 댓글 생성 시작 로직 추가 예정
+	go s.handleAIComments(post.ID, 0, post.Title+"\n"+post.Description)
 
 	return post, nil
+}
+
+func (s *PostService) handleAIComments(postID, parentID uint, content string) {
+	resp, err := s.clovaClient.GetAIComments(postID, content)
+	if err != nil {
+		log.Printf("AI 댓글 생성 실패 (PostID: %d): %v", postID, err)
+		return
+	}
+
+	var aiResults []struct {
+		ReactionType string `json:"reaction_type"`
+		Comment      string `json:"comment"`
+	}
+
+	if err := json.Unmarshal([]byte(resp), &aiResults); err != nil {
+		log.Printf("AI 응답 파싱 실패: %v", err)
+		return
+	}
+
+	typeMap := map[string]uint{
+		"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6,
+	}
+
+	for _, res := range aiResults {
+		aiType := typeMap[res.ReactionType]
+		_, err := s.commentService.CreateComment(comment.CreateCommentParams{
+			UserID:      0,
+			PostID:      postID,
+			Description: res.Comment,
+			ParentID:    &parentID,
+			IsAI:        true,
+			AIType:      &aiType,
+		})
+		if err != nil {
+			log.Printf("AI 댓글 저장 실패: %v", err)
+		}
+	}
 }
 
 func (s *PostService) GetPosts(postType string, page, limit int) ([]model.Post, error) {

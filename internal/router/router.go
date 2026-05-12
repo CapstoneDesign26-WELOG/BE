@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"welog/internal/auth"
+	"welog/internal/comment"
 	"welog/internal/post"
 	"welog/internal/scheduler"
 	"welog/internal/user"
+	"welog/pkg/ai"
 
 	"gorm.io/gorm"
 )
@@ -18,8 +20,14 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 	userService := user.NewUserService(userRepo)
 	userHandler := user.NewUserHandler(userService)
 
+	commentRepo := comment.NewCommentRepository(db)
+	commentService := comment.NewCommentService(commentRepo)
+	commentHandler := comment.NewCommentHandler(commentService)
+
+	clovaClient := ai.NewClovaClient()
+
 	postRepo := post.NewPostRepository(db)
-	postService := post.NewPostService(postRepo, userService)
+	postService := post.NewPostService(postRepo, userService, commentService, clovaClient)
 	postHandler := post.NewPostHandler(postService)
 
 	authService := auth.NewAuthService(userRepo, jwtSecret, googleClientID)
@@ -39,6 +47,7 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 	authHandler.RegisterRoutes(mux)
 	userHandler.RegisterRoutes(mux, []byte(jwtSecret))
 	postHandler.RegisterRoutes(mux, []byte(jwtSecret))
+	commentHandler.RegisterRoutes(mux, []byte(jwtSecret))
 
 	return mux, appScheduler.Stop
 }
