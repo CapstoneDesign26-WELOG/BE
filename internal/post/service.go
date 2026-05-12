@@ -59,6 +59,7 @@ func (s *PostService) handleAIComments(userID, postID, parentID uint, content st
 	resp, err := s.clovaClient.GetAIComments(postID, content)
 	if err != nil {
 		log.Printf("AI 댓글 생성 실패 (PostID: %d): %v", postID, err)
+		s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_FAILED", "post_id": %d}`, postID))
 		return
 	}
 
@@ -75,6 +76,7 @@ func (s *PostService) handleAIComments(userID, postID, parentID uint, content st
 
 	if err := json.Unmarshal([]byte(cleaned), &aiResults); err != nil {
 		log.Printf("AI 응답 파싱 실패: %v", err)
+		s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_FAILED", "post_id": %d}`, postID))
 		return
 	}
 
@@ -131,7 +133,12 @@ func (s *PostService) DeletePost(userID, postID uint) error {
 		return err
 	}
 
-	if post.UserID != userID {
+	reqUser, err := s.userService.GetUser(userID)
+	if err != nil {
+		return err
+	}
+
+	if post.UserID != userID && reqUser.Role != "ADMIN" {
 		return errors.New("게시글을 삭제할 권한이 없습니다")
 	}
 

@@ -60,3 +60,7 @@ func (r *UserRepository) ConsumeToken(userID, amount uint) error {
 func (r *UserRepository) UpdateTokenBelowThreshold(threshold, targetCount uint) error {
 	return r.db.Model(&model.User{}).Where("token_count < ?", threshold).Update("token_count", targetCount).Error
 }
+
+func (r *UserRepository) Save(user *model.User) error {
+	return r.db.Save(user).Error
+}

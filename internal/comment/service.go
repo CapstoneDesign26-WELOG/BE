@@ -46,7 +46,7 @@ func (s *CommentService) DeleteComment(userID, commentID uint) error {
 		return err
 	}
 
-	if comment.UserID != userID {
+	if comment.UserID != userID && comment.User.Role != "ADMIN" {
 		return errors.New("댓글을 삭제할 권한이 없습니다")
 	}
 
