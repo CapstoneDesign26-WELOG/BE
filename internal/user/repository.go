@@ -64,3 +64,9 @@ func (r *UserRepository) UpdateTokenBelowThreshold(threshold, targetCount uint) 
 func (r *UserRepository) Save(user *model.User) error {
 	return r.db.Save(user).Error
 }
+
+func (r *UserRepository) RefundToken(userID, amount uint) error {
+	return r.db.Model(&model.User{}).
+		Where("id = ? ", userID).
+		UpdateColumn("token_count", gorm.Expr("token_cout + ?", amount)).Error
+}

@@ -49,7 +49,7 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 	}
 
 	if err := s.repo.Create(post); err != nil {
-		// 실패시 토큰 되돌려주는 로직 추가 예정
+		s.userService.RefundToken(userID, tokenCost)
 		return nil, err
 	}
 
