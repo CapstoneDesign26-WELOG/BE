@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"welog/internal/auth"
 	"welog/internal/comment"
+	"welog/internal/notification"
 	"welog/internal/post"
 	"welog/internal/scheduler"
 	"welog/internal/user"
@@ -26,8 +27,10 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 
 	clovaClient := ai.NewClovaClient()
 
+	notificationService := notification.NewNotificationService()
+
 	postRepo := post.NewPostRepository(db)
-	postService := post.NewPostService(postRepo, userService, commentService, clovaClient)
+	postService := post.NewPostService(postRepo, userService, commentService, clovaClient, notificationService)
 	postHandler := post.NewPostHandler(postService)
 
 	authService := auth.NewAuthService(userRepo, jwtSecret, googleClientID)
@@ -48,6 +51,8 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 	userHandler.RegisterRoutes(mux, []byte(jwtSecret))
 	postHandler.RegisterRoutes(mux, []byte(jwtSecret))
 	commentHandler.RegisterRoutes(mux, []byte(jwtSecret))
+
+	mux.Handle("GET /api/notifications/subscribe", auth.JWTAuthMiddleware([]byte(jwtSecret))(http.HandlerFunc(notificationService.Subscribe)))
 
 	return mux, appScheduler.Stop
 }

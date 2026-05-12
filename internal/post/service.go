@@ -3,27 +3,31 @@ package post
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"welog/internal/comment"
 	"welog/internal/model"
+	"welog/internal/notification"
 	"welog/internal/user"
 	"welog/pkg/ai"
 )
 
 type PostService struct {
-	repo           *PostRepository
-	userService    *user.UserService
-	commentService *comment.CommentService
-	clovaClient    *ai.ClovaClient
+	repo                *PostRepository
+	userService         *user.UserService
+	commentService      *comment.CommentService
+	clovaClient         *ai.ClovaClient
+	notificationService *notification.NotificationService
 }
 
-func NewPostService(repo *PostRepository, userService *user.UserService, commentService *comment.CommentService, clovaClient *ai.ClovaClient) *PostService {
+func NewPostService(repo *PostRepository, userService *user.UserService, commentService *comment.CommentService, clovaClient *ai.ClovaClient, notificationService *notification.NotificationService) *PostService {
 	return &PostService{
-		repo:           repo,
-		userService:    userService,
-		commentService: commentService,
-		clovaClient:    clovaClient,
+		repo:                repo,
+		userService:         userService,
+		commentService:      commentService,
+		clovaClient:         clovaClient,
+		notificationService: notificationService,
 	}
 }
 
@@ -46,12 +50,12 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 		return nil, err
 	}
 
-	go s.handleAIComments(post.ID, 0, post.Title+"\n"+post.Description)
+	go s.handleAIComments(userID, post.ID, 0, post.Title+"\n"+post.Description)
 
 	return post, nil
 }
 
-func (s *PostService) handleAIComments(postID, parentID uint, content string) {
+func (s *PostService) handleAIComments(userID, postID, parentID uint, content string) {
 	resp, err := s.clovaClient.GetAIComments(postID, content)
 	if err != nil {
 		log.Printf("AI 댓글 생성 실패 (PostID: %d): %v", postID, err)
@@ -93,6 +97,8 @@ func (s *PostService) handleAIComments(postID, parentID uint, content string) {
 			log.Printf("AI 댓글 저장 실패: %v", err)
 		}
 	}
+
+	s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_COMPLETE", "post_id": %d}`, postID))
 }
 
 func (s *PostService) GetPosts(postType string, page, limit int) ([]model.Post, error) {
