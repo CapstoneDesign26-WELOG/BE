@@ -29,7 +29,7 @@ type ClovaRequest struct {
 	Temperature      float64   `json:"temperature"`
 	RepeatPenalty    float64   `json:"repeatPenalty"`
 	StopBefore       []string  `json:"stopBefore"`
-	IncludeAiFilters bool      `json:"includeAiFillters"`
+	IncludeAiFilters bool      `json:"includeAiFilters"`
 }
 
 type ClovaResponse struct {

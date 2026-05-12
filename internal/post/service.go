@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"strings"
 	"welog/internal/comment"
 	"welog/internal/model"
 	"welog/internal/user"
@@ -62,7 +63,13 @@ func (s *PostService) handleAIComments(postID, parentID uint, content string) {
 		Comment      string `json:"comment"`
 	}
 
-	if err := json.Unmarshal([]byte(resp), &aiResults); err != nil {
+	cleaned := strings.TrimSpace(resp)
+	cleaned = strings.TrimPrefix(cleaned, "```json")
+	cleaned = strings.TrimPrefix(cleaned, "```")
+	cleaned = strings.TrimSuffix(cleaned, "```")
+	cleaned = strings.TrimSpace(cleaned)
+
+	if err := json.Unmarshal([]byte(cleaned), &aiResults); err != nil {
 		log.Printf("AI 응답 파싱 실패: %v", err)
 		return
 	}
@@ -74,7 +81,8 @@ func (s *PostService) handleAIComments(postID, parentID uint, content string) {
 	for _, res := range aiResults {
 		aiType := typeMap[res.ReactionType]
 		_, err := s.commentService.CreateComment(comment.CreateCommentParams{
-			UserID:      0,
+			// 시스템 유저
+			UserID:      1,
 			PostID:      postID,
 			Description: res.Comment,
 			ParentID:    &parentID,
