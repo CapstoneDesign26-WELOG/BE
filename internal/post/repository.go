@@ -35,7 +35,9 @@ func (r *PostRepository) FindAll(postType uint, offset, limit int) ([]model.Post
 
 func (r *PostRepository) FindByID(postID uint) (*model.Post, error) {
 	var post model.Post
-	err := r.db.Preload("Comments").First(&post, postID).Error
+	err := r.db.Preload("Comments", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at ASC")
+	}).Preload("Comments.User").First(&post, postID).Error
 	if err != nil {
 		return nil, err
 	}
