@@ -61,56 +61,6 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 	return post, nil
 }
 
-/*
-func (s *PostService) handleAIComments(userID, postID, parentID uint, content string) {
-	resp, err := s.clovaClient.GetSingleAIComment(postID, content)
-	if err != nil {
-		log.Printf("AI 댓글 생성 실패 (PostID: %d): %v", postID, err)
-		s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_FAILED", "post_id": %d}`, postID))
-		return
-	}
-
-	var aiResults []struct {
-		ReactionType string `json:"reaction_type"`
-		Comment      string `json:"comment"`
-	}
-
-	cleaned := strings.TrimSpace(resp)
-	cleaned = strings.TrimPrefix(cleaned, "```json")
-	cleaned = strings.TrimPrefix(cleaned, "```")
-	cleaned = strings.TrimSuffix(cleaned, "```")
-	cleaned = strings.TrimSpace(cleaned)
-
-	if err := json.Unmarshal([]byte(cleaned), &aiResults); err != nil {
-		log.Printf("AI 응답 파싱 실패: %v", err)
-		s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_FAILED", "post_id": %d}`, postID))
-		return
-	}
-
-	typeMap := map[string]uint{
-		"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6,
-	}
-
-	for _, res := range aiResults {
-		aiType := typeMap[res.ReactionType]
-		_, err := s.commentService.CreateComment(comment.CreateCommentParams{
-			// 시스템 유저
-			UserID:      1,
-			PostID:      postID,
-			Description: res.Comment,
-			ParentID:    &parentID,
-			IsAI:        true,
-			AIType:      &aiType,
-		})
-		if err != nil {
-			log.Printf("AI 댓글 저장 실패: %v", err)
-		}
-	}
-
-	s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_COMPLETE", "post_id": %d}`, postID))
-}
-*/
-
 func getRandomDelay(st, en int) time.Duration {
 	return time.Duration(rand.Intn(en-st+1)+st) * time.Minute
 }
