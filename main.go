@@ -18,6 +18,7 @@ func main() {
 	}
 	dsn := os.Getenv("DSN")
 	db := database.ConnectDB(dsn)
+	database.SeedSystemUser(db)
 	jwtSecret := os.Getenv("JWT_SECRET")
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
 	r, cleanup := router.NewRouter(db, jwtSecret, googleClientID)
