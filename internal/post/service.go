@@ -99,9 +99,23 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 			var threadBuilder strings.Builder
 			threadBuilder.WriteString(fmt.Sprintf("-%s (원문)\n", selectedRoot.Description))
 
-			for _, c := range post.Comments {
+			/*
+				for _, c := range post.Comments {
+					if c.ParentID != nil && *c.ParentID == selectedRoot.ID {
+						threadBuilder.WriteString(fmt.Sprintf(" ㄴ %s\n", c.Description))
+					}
+				}
+			*/
+			count := 0
+			for i := len(post.Comments) - 1; i >= 0; i-- {
+				c := post.Comments[i]
 				if c.ParentID != nil && *c.ParentID == selectedRoot.ID {
 					threadBuilder.WriteString(fmt.Sprintf(" ㄴ %s\n", c.Description))
+					count++
+
+					if count >= 4 {
+						break
+					}
 				}
 			}
 

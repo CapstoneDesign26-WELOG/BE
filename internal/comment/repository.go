@@ -22,7 +22,7 @@ func (r *CommentRepository) Create(comment *model.Comment) error {
 
 func (r *CommentRepository) FindByID(commentID uint) (*model.Comment, error) {
 	var comment model.Comment
-	err := r.db.First(&comment, commentID).Error
+	err := r.db.Preload("User").First(&comment, commentID).Error
 	if err != nil {
 		return nil, err
 	}
