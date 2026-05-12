@@ -30,7 +30,11 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postID, _ := strconv.ParseUint(r.PathValue("postId"), 10, 32)
+	postID, err := strconv.ParseUint(r.PathValue("postId"), 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
 
 	var req CreateCommentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -64,7 +68,11 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 // DELETE /api/comments/{commentId}
 func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	userClaims := auth.GetUserFromContext(r.Context())
-	commentID, _ := strconv.ParseUint(r.PathValue("commentId"), 10, 32)
+	commentID, err := strconv.ParseUint(r.PathValue("commentId"), 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
 
 	if err := h.service.DeleteComment(userClaims.UserID, uint(commentID)); err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
@@ -75,7 +83,11 @@ func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 func (h *CommentHandler) LikeComment(w http.ResponseWriter, r *http.Request) {
 	userClaims := auth.GetUserFromContext(r.Context())
-	commentID, _ := strconv.ParseUint(r.PathValue("commentId"), 10, 32)
+	commentID, err := strconv.ParseUint(r.PathValue("commentId"), 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
 
 	if err := h.service.LikeComment(userClaims.UserID, uint(commentID)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
