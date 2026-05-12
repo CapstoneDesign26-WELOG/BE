@@ -13,18 +13,24 @@ const ContextUserKey contextKey = "user_claims"
 func JWTAuthMiddleware(secretKey []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var tokenString string
+
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenString = parts[1]
+				}
+			}
+
+			if tokenString == "" {
+				tokenString = r.URL.Query().Get("token")
+			}
+
+			if tokenString == "" {
 				http.Error(w, "인증 토큰이 필요합니다.", http.StatusUnauthorized)
 				return
 			}
-
-			parts := strings.Split(authHeader, " ")
-			if len(parts) != 2 || parts[0] != "Bearer" {
-				http.Error(w, "토큰 형식이 올바르지 않습니다", http.StatusUnauthorized)
-				return
-			}
-			tokenString := parts[1]
 
 			claims, err := ValidateToken(tokenString, secretKey)
 			if err != nil {
