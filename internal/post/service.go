@@ -203,8 +203,6 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 		return
 	}
 
-	s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_ADDED", "post_id": %d}`, postID))
-
 	nextDelay := getRandomDelay(1, 3)
 	time.AfterFunc(nextDelay, func() {
 		s.handleAICommentStep(userID, postID, remaining-1)

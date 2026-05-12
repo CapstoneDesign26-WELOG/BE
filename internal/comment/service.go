@@ -2,11 +2,19 @@ package comment
 
 import (
 	"errors"
+	"fmt"
 	"welog/internal/model"
+	"welog/internal/notification"
 )
 
+type PostRepository interface {
+	FindByID(id uint) (*model.Post, error)
+}
+
 type CommentService struct {
-	repo *CommentRepository
+	repo                *CommentRepository
+	postRepo            PostRepository
+	notificationService *notification.NotificationService
 }
 
 type CreateCommentParams struct {
@@ -18,9 +26,11 @@ type CreateCommentParams struct {
 	AIType      *uint
 }
 
-func NewCommentService(repo *CommentRepository) *CommentService {
+func NewCommentService(repo *CommentRepository, postRepo PostRepository, notificationService *notification.NotificationService) *CommentService {
 	return &CommentService{
-		repo: repo,
+		repo:                repo,
+		postRepo:            postRepo,
+		notificationService: notificationService,
 	}
 }
 
@@ -37,6 +47,16 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 	if err := s.repo.Create(comment); err != nil {
 		return nil, err
 	}
+
+	post, err := s.postRepo.FindByID(params.PostID)
+	if err == nil && post != nil {
+		notificationType := "COMMENT_ADDED"
+		if params.IsAI {
+			notificationType = "AI_COMMENT_ADDED"
+		}
+		s.notificationService.Notify(post.UserID, fmt.Sprintf(`{"type": "%s", "post_id": %d}`, notificationType, params.PostID))
+	}
+
 	return comment, nil
 }
 
