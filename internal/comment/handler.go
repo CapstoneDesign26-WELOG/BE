@@ -18,7 +18,7 @@ func NewCommentHandler(service *CommentService) *CommentHandler {
 }
 
 type CreateCommentRequest struct {
-	Descrtipion string `json:"description"`
+	Description string `json:"description"`
 	ParentID    *uint  `json:"parent_id"`
 }
 
@@ -41,7 +41,7 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	params := CreateCommentParams{
 		UserID:      userClaims.UserID,
 		PostID:      uint(postID),
-		Description: req.Descrtipion,
+		Description: req.Description,
 		ParentID:    req.ParentID,
 		IsAI:        false,
 		AIType:      nil,
