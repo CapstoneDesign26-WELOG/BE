@@ -15,7 +15,7 @@ func SeedSystemUser(db *gorm.DB) {
 		systemUser := model.User{
 			ID:         1,
 			Email:      "system@welog.ai",
-			Nickname:   "AI Assisatant",
+			Nickname:   "AI Assistant",
 			Provider:   "system",
 			ProviderID: "system-ai-account",
 			Role:       "SYSTEM",

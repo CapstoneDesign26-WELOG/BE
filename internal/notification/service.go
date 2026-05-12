@@ -42,7 +42,7 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 		s.mu.Unlock()
 	}()
 
-	fmt.Fprintf(w, "data: %s\n\n", "connected")
+	fmt.Fprintf(w, "data: {\"type\": \"CONNECTED\"}\n\n")
 	w.(http.Flusher).Flush()
 
 	for {

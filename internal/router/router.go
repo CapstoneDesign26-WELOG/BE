@@ -52,7 +52,7 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 	postHandler.RegisterRoutes(mux, []byte(jwtSecret))
 	commentHandler.RegisterRoutes(mux, []byte(jwtSecret))
 
-	mux.Handle("GET /api/notifications/subscribe", auth.JWTAuthMiddleware([]byte(jwtSecret))(http.HandlerFunc(notificationService.Subscribe)))
+	mux.Handle("GET /api/notifications/stream", auth.JWTAuthMiddleware([]byte(jwtSecret))(http.HandlerFunc(notificationService.Subscribe)))
 
 	return mux, appScheduler.Stop
 }
