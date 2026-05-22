@@ -24,7 +24,7 @@ func NewRouter(db *gorm.DB, jwtSecret, googleClientID string) (http.Handler, fun
 	clovaClient := ai.NewClovaClient()
 
 	notificationService := notification.NewNotificationService()
-	userService := user.NewUserService(userRepo)
+	userService := user.NewUserService(userRepo, postRepo, commentRepo)
 	authService := auth.NewAuthService(userRepo, jwtSecret, googleClientID)
 	commentService := comment.NewCommentService(commentRepo, postRepo, notificationService)
 	postService := post.NewPostService(postRepo, userService, commentService, clovaClient, notificationService)

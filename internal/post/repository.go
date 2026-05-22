@@ -46,9 +46,7 @@ func (r *PostRepository) FindByID(postID uint) (*model.Post, error) {
 
 func (r *PostRepository) FindAllByUserID(userID uint) ([]model.Post, error) {
 	var posts []model.Post
-	query := r.db.Model(&model.Post{}).Where("user_id = ?", userID)
-
-	err := query.Order("created_at ASC").Find(&posts).Error
+	err := r.db.Preload("Comments").Where("user_id = ?", userID).Order("created_at DESC").Find(&posts).Error
 	return posts, err
 }
 

@@ -20,17 +20,19 @@ type UserService struct {
 }
 
 type MyPageComment struct {
-	ID            uint      `json:"id"`
-	Description   string    `json:"description"`
-	CreatedAt     time.Time `json:"created_at"`
-	PostTitle     string    `json:"post_title"`
-	PostCreatedAt time.Time `json:"post_created_at"`
+	ID               uint      `json:"id"`
+	Description      string    `json:"description"`
+	CreatedAt        time.Time `json:"created_at"`
+	PostTitle        string    `json:"post_title"`
+	PostCreatedAt    time.Time `json:"post_created_at"`
+	PostCommentCount int       `json:"post_comment_count"`
+	LikeCount        uint      `json:"like_count"`
 }
 
 type MyPageResponse struct {
 	User     *model.User     `json:"user"`
 	Posts    []model.Post    `json:"posts"`
-	Comments []model.Comment `json:"comments"`
+	Comments []MyPageComment `json:"comments"`
 }
 
 func NewUserService(repo *UserRepository, postRepo PostRepository, commentRepo CommentRepository) *UserService {
@@ -63,18 +65,20 @@ func (s *UserService) GetMyPage(userID uint) (*MyPageResponse, error) {
 	myPageComments := make([]MyPageComment, 0, len(comments))
 	for _, c := range comments {
 		myPageComments = append(myPageComments, MyPageComment{
-			ID:            c.ID,
-			Description:   c.Description,
-			CreatedAt:     c.CreatedAt,
-			PostTitle:     c.Post.Title,
-			PostCreatedAt: c.Post.CreatedAt,
+			ID:               c.ID,
+			Description:      c.Description,
+			CreatedAt:        c.CreatedAt,
+			PostTitle:        c.Post.Title,
+			PostCreatedAt:    c.Post.CreatedAt,
+			PostCommentCount: len(c.Post.Comments),
+			LikeCount:        c.LikeCount,
 		})
 	}
 
 	return &MyPageResponse{
 		User:     user,
 		Posts:    posts,
-		Comments: comments,
+		Comments: myPageComments,
 	}, nil
 }
 
