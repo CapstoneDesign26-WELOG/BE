@@ -44,6 +44,14 @@ func (r *PostRepository) FindByID(postID uint) (*model.Post, error) {
 	return &post, nil
 }
 
+func (r *PostRepository) FindAllByUserID(userID uint) ([]model.Post, error) {
+	var posts []model.Post
+	query := r.db.Model(&model.Post{}).Where("user_id = ?", userID)
+
+	err := query.Order("created_at ASC").Find(&posts).Error
+	return posts, err
+}
+
 func (r *PostRepository) Delete(postID uint) error {
 	return r.db.Delete(&model.Post{}, postID).Error
 }

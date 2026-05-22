@@ -16,6 +16,8 @@ type Comment struct {
 	IsAI        bool   `gorm:"default:false;not null"`
 	AIType      *uint
 
+	LikeCount uint
+
 	User   User     `gorm:"foreignKey:UserID"`
 	Post   Post     `gorm:"foreignKey:PostID"`
 	Parent *Comment `gorm:"foreignKey:ParentID"`

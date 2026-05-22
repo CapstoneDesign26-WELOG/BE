@@ -37,3 +37,20 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		"token_count": user.TokenCount,
 	})
 }
+
+func (h *UserHandler) GetMyPage(w http.ResponseWriter, r *http.Request) {
+	userClaims := auth.GetUserFromContext(r.Context())
+	if userClaims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	resp, err := h.userService.GetMyPage(userClaims.UserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
