@@ -197,6 +197,10 @@ func (s *PostService) GetPostDetails(postID uint) (*model.Post, error) {
 	return s.repo.FindByID(postID)
 }
 
+func (s *PostService) GetPostsByUserID(userID uint) ([]model.Post, error) {
+	return s.repo.FindAllByUserID(userID)
+}
+
 func (s *PostService) DeletePost(userID, postID uint) error {
 	post, err := s.repo.FindByID(postID)
 	if err != nil {

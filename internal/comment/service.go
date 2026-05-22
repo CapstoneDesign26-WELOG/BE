@@ -54,7 +54,7 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 		if params.IsAI {
 			notificationType = "AI_COMMENT_ADDED"
 		}
-		s.notificationService.Notify(post.UserID, fmt.Sprintf(`{"type": "%s", "post_id": %d}`, notificationType, params.PostID))
+		s.notificationService.Notify(post.UserID, fmt.Sprintf(`{"type": "%s", "post_id": %d, "post_title": "%s", "comment_description": "%s"}`, notificationType, params.PostID, post.Title, comment.Description))
 	}
 
 	return comment, nil

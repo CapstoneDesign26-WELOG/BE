@@ -68,5 +68,5 @@ func (r *UserRepository) Save(user *model.User) error {
 func (r *UserRepository) RefundToken(userID, amount uint) error {
 	return r.db.Model(&model.User{}).
 		Where("id = ? ", userID).
-		UpdateColumn("token_count", gorm.Expr("token_cout + ?", amount)).Error
+		UpdateColumn("token_count", gorm.Expr("token_count + ?", amount)).Error
 }

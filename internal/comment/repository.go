@@ -50,3 +50,9 @@ func (r *CommentRepository) UpsertPreference(userID, aiType uint, score int) err
 
 	return r.db.Model(&pref).Update("score", gorm.Expr("score + ?", score)).Error
 }
+
+func (r *CommentRepository) FindAllByUserIDWithPost(userID uint) ([]model.Comment, error) {
+	var comments []model.Comment
+	err := r.db.Preload("Post").Preload("Post.Comments").Where("user_id = ?", userID).Find(&comments).Error
+	return comments, err
+}
