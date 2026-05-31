@@ -19,6 +19,7 @@ func ConnectDB(dsn string) *gorm.DB {
 		&model.User{},
 		&model.Post{},
 		&model.Comment{},
+		&model.UserPreference{},
 	)
 	if err != nil {
 		log.Fatalf("❌ DB 마이그레이션 실패: %v", err)
