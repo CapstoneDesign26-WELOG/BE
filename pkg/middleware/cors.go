@@ -1,6 +1,9 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -9,9 +12,13 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		allowedOrigins := map[string]bool{
 			"https://welog-fe.pages.dev": true,
 			"http://localhost:5173":      true,
+			"https://www.welog.site":     true,
+			"https://welog.site":         true,
 		}
 
-		if allowedOrigins[origin] {
+		isAllowed := allowedOrigins[origin] || strings.HasSuffix(origin, ".welog-fe.pages.dev")
+
+		if isAllowed {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 
