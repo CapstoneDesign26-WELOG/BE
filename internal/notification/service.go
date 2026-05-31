@@ -37,7 +37,9 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 
 	defer func() {
 		s.mu.Lock()
-		delete(s.clients, userClaims.UserID)
+		if s.clients[userClaims.UserID] == clientChan {
+			delete(s.clients, userClaims.UserID)
+		}
 		close(clientChan)
 		s.mu.Unlock()
 	}()
