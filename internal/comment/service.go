@@ -101,7 +101,9 @@ func (s *CommentService) LikeComment(userID, commentID uint) error {
 	}
 
 	if comment.IsAI && comment.AIType != nil {
-		return s.repo.UpsertPreference(userID, *comment.AIType, 1)
+		if err := s.repo.UpsertPreference(userID, *comment.AIType, 1); err != nil {
+			return err
+		}
 	}
 
 	return s.repo.IncrementLikeCount(commentID)
