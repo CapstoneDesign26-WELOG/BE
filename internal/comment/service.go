@@ -11,9 +11,14 @@ type PostRepository interface {
 	FindByID(id uint) (*model.Post, error)
 }
 
+type UserRepository interface {
+	FindById(id uint) (*model.User, error)
+}
+
 type CommentService struct {
 	repo                *CommentRepository
 	postRepo            PostRepository
+	userRepo            UserRepository
 	notificationService *notification.NotificationService
 }
 
@@ -26,10 +31,11 @@ type CreateCommentParams struct {
 	AIType      *uint
 }
 
-func NewCommentService(repo *CommentRepository, postRepo PostRepository, notificationService *notification.NotificationService) *CommentService {
+func NewCommentService(repo *CommentRepository, postRepo PostRepository, userRepo UserRepository, notificationService *notification.NotificationService) *CommentService {
 	return &CommentService{
 		repo:                repo,
 		postRepo:            postRepo,
+		userRepo:            userRepo,
 		notificationService: notificationService,
 	}
 }
@@ -66,7 +72,12 @@ func (s *CommentService) DeleteComment(userID, commentID uint) error {
 		return err
 	}
 
-	if comment.UserID != userID && comment.User.Role != "ADMIN" {
+	reqUser, err := s.userRepo.FindById(userID)
+	if err != nil || reqUser == nil {
+		return errors.New("유저 정보를 찾을 수 없습니다")
+	}
+
+	if comment.UserID != userID && reqUser.Role != "ADMIN" {
 		return errors.New("댓글을 삭제할 권한이 없습니다")
 	}
 
