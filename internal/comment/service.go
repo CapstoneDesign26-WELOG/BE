@@ -12,7 +12,7 @@ type PostRepository interface {
 }
 
 type UserRepository interface {
-	FindById(id uint) (*model.User, error)
+	FindByID(id uint) (*model.User, error)
 }
 
 type CommentService struct {
@@ -82,7 +82,7 @@ func (s *CommentService) DeleteComment(userID, commentID uint) error {
 		return err
 	}
 
-	reqUser, err := s.userRepo.FindById(userID)
+	reqUser, err := s.userRepo.FindByID(userID)
 	if err != nil || reqUser == nil {
 		return errors.New("유저 정보를 찾을 수 없습니다")
 	}
