@@ -56,3 +56,9 @@ func (r *CommentRepository) FindAllByUserIDWithPost(userID uint) ([]model.Commen
 	err := r.db.Preload("Post").Preload("Post.Comments").Where("user_id = ?", userID).Find(&comments).Error
 	return comments, err
 }
+
+func (r *CommentRepository) IncrementLikeCount(commentID uint) error {
+	return r.db.Model(&model.Comment{}).
+		Where("id = ?", commentID).
+		Update("like_count", gorm.Expr("like_count + ?", 1)).Error
+}
