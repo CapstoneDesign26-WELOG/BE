@@ -1,8 +1,8 @@
 package comment
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"welog/internal/model"
 	"welog/internal/notification"
 )
@@ -60,7 +60,17 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 		if params.IsAI {
 			notificationType = "AI_COMMENT_ADDED"
 		}
-		s.notificationService.Notify(post.UserID, fmt.Sprintf(`{"type": "%s", "post_id": %d, "post_title": "%s", "comment_description": "%s"}`, notificationType, params.PostID, post.Title, comment.Description))
+
+		payload := map[string]interface{}{
+			"type":                notificationType,
+			"post_id":             params.PostID,
+			"post_title":          post.Title,
+			"comment_description": comment.Description,
+		}
+		jsonBytes, err := json.Marshal(payload)
+		if err == nil {
+			s.notificationService.Notify(post.UserID, string(jsonBytes))
+		}
 	}
 
 	return comment, nil
