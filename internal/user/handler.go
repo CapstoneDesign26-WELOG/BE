@@ -35,6 +35,8 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"user_id":     user.ID,
 		"email":       user.Email,
+		"nickname":    user.Nickname,
+		"role":        user.Role,
 		"token_count": user.TokenCount,
 	})
 }
