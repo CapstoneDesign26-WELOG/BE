@@ -90,3 +90,9 @@ func (r *UserRepository) GetUserPreferences(userID uint) (map[uint]int, error) {
 	}
 	return prefs, nil
 }
+
+func (r *UserRepository) UpdateAIPreference(userID uint, preference uint) error {
+	return r.db.Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("ai_preference", preference).Error
+}

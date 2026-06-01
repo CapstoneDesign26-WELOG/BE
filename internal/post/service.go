@@ -253,6 +253,29 @@ func (s *PostService) getWeightedAIType(userID uint) uint {
 		totalWeight += w
 	}
 
+	if u, err := s.userService.GetUser(userID); err == nil && u.AIPreference != 0 {
+		boost := int(float64(totalWeight) * 0.5)
+		if boost < 1 {
+			boost = 1
+		}
+
+		switch u.AIPreference {
+		case 1: // 현실조언형: A1(1), A2(2), C2(6)
+			weights[1] += boost
+			weights[2] += boost
+			weights[6] += boost
+		case 2: // 감정위로형: B1(3), B2(4), C1(5)
+			weights[3] += boost
+			weights[4] += boost
+			weights[5] += boost
+		}
+
+		totalWeight = 0
+		for _, w := range weights {
+			totalWeight += w
+		}
+	}
+
 	r := rand.Intn(totalWeight)
 	cumulative := 0
 	for aiType := uint(1); aiType <= 6; aiType++ {
