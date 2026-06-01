@@ -23,6 +23,7 @@ type MyPageComment struct {
 	ID               uint      `json:"id"`
 	Description      string    `json:"description"`
 	CreatedAt        time.Time `json:"created_at"`
+	PostID           uint      `json:"post_id"`
 	PostTitle        string    `json:"post_title"`
 	PostCreatedAt    time.Time `json:"post_created_at"`
 	PostCommentCount int       `json:"post_comment_count"`
@@ -68,6 +69,7 @@ func (s *UserService) GetMyPage(userID uint) (*MyPageResponse, error) {
 			ID:               c.ID,
 			Description:      c.Description,
 			CreatedAt:        c.CreatedAt,
+			PostID:           c.Post.ID,
 			PostTitle:        c.Post.Title,
 			PostCreatedAt:    c.Post.CreatedAt,
 			PostCommentCount: len(c.Post.Comments),

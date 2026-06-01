@@ -95,3 +95,19 @@ func (h *CommentHandler) LikeComment(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+// DELETE /api/comments/{commentId}/unlike
+func (h *CommentHandler) UnlikeComment(w http.ResponseWriter, r *http.Request) {
+	userClaims := auth.GetUserFromContext(r.Context())
+	commentID, err := strconv.ParseUint(r.PathValue("commentId"), 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UnlikeComment(userClaims.UserID, uint(commentID)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}

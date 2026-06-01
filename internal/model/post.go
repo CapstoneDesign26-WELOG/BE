@@ -12,12 +12,13 @@ const (
 )
 
 type Post struct {
-	ID          uint   `gorm:"primaryKey"`
-	UserID      uint   `gorm:"index;not null"`
-	Title       string `gorm:"type:varchar(255);not null"`
-	Description string `gorm:"type:text;not null"`
-	Type        uint   `gorm:"not null"`
-	Count       uint   `gorm:"not null"`
+	ID           uint   `gorm:"primaryKey"`
+	UserID       uint   `gorm:"index;not null"`
+	Title        string `gorm:"type:varchar(255);not null"`
+	Description  string `gorm:"type:text;not null"`
+	Type         uint   `gorm:"not null"`
+	Count        uint   `gorm:"not null"`
+	CommentCount uint   `gorm:"->" json:"comment_count"`
 
 	Comments []Comment `gorm:"foreignKey:PostID"`
 

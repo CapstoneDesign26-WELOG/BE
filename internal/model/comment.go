@@ -16,7 +16,7 @@ type Comment struct {
 	IsAI        bool   `gorm:"default:false;not null"`
 	AIType      *uint
 
-	LikeCount uint
+	LikeCount uint `gorm:"default:0;check:like_count >= 0"`
 
 	User   User     `gorm:"foreignKey:UserID"`
 	Post   Post     `gorm:"foreignKey:PostID"`
@@ -25,4 +25,10 @@ type Comment struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt
+}
+
+type CommentLike struct {
+	UserID    uint `gorm:"primaryKey"`
+	CommentID uint `gorm:"primaryKey"`
+	CreatedAt time.Time
 }
