@@ -48,6 +48,10 @@ func (s *UserService) GetUser(userID uint) (*model.User, error) {
 	return s.repo.FindByID(userID)
 }
 
+func (s *UserService) GetUserPreferences(userID uint) (map[uint]int, error) {
+	return s.repo.GetUserPreferences(userID)
+}
+
 func (s *UserService) GetMyPage(userID uint) (*MyPageResponse, error) {
 	user, err := s.repo.FindByID(userID)
 	if err != nil {

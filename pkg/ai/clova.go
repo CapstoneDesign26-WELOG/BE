@@ -45,23 +45,18 @@ func NewClovaClient() *ClovaClient {
 	}
 }
 
-func (c *ClovaClient) GetSingleAIComment(content string) (string, error) {
-	systemPrompt := `Role: 익명 커뮤니티 유저. 문맥에 맞는 리얼한 댓글 1개 작성.
+func (c *ClovaClient) GetSingleAIComment(content string, reactionType uint) (string, error) {
+	typeCode, typeDesc := GetAITypeInfo(reactionType)
+
+	systemPrompt := fmt.Sprintf(`Role: 익명 커뮤니티 유저. 문맥에 맞는 리얼한 댓글 1개 작성.
 Rules:
 - 분량: 50자~200자 사이로 다양하게 작성 (때로는 짧게, 때로는 썰을 풀듯이 길게).
-- 말투: 반말, 음슴체(~임, ~함), 신조어(ㄹㅇ, ㅋㅋ) 권장. 마침표 금지. 오타/띄어쓰기 파괴 권장.
+- 성향: %s
+- 말투: 반말, 음슴체(~임, ~함), 신조어(ㄹㅇ, ㅋㅋ) 권장. 마침표(.) 자제. 오타/띄어쓰기 파괴 권장.
 - 태도: 상담사 말투 절대 금지. 날것의 커뮤니티 감성으로 팩폭/공감/분석/비완결성 유지.
-- 공감모델: 아래 6개 중 무작위 1개 선택
-
-(A1) 인지-맥락: 사건의 인과관계를 논리적으로 분석하고 문제의 핵심 원인을 지적
-(A2) 인지-관점: 타인의 입장이나 환경적 요인을 객관적으로 설명하여 문제를 재설정
-(B1) 정서-수용: 감정이 틀리지 않았음을 인정하고 따뜻한 심리적 울타리 제공
-(B2) 정서-촉진: 미묘한 감정을 구체적인 언어로 짚어주며 정서적 안정감과 동기 부여
-(C1) 공유-동질: 에이전트 자신의 유사한 실패/고난 경험을 공유하여 고립감 해소
-(C2) 공유-통찰: 유사 상황 극복 과정과 구체적인 해결 전략 전수
 
 Output: JSON Only. (반드시 JSON 형식을 끝까지 닫아서 완성할 것)
-{"reaction_type":"A1~C2 코드","comment":"내용"}`
+{"reaction_type":"%s","comment":"내용"}`, typeDesc, typeCode)
 
 	userInput := fmt.Sprintf("게시글 및 댓글 문맥:\n%s", content)
 	reqBody := ClovaRequest{
