@@ -5,6 +5,8 @@ import (
 	"errors"
 	"welog/internal/model"
 	"welog/internal/notification"
+
+	"gorm.io/gorm"
 )
 
 type PostRepository interface {
@@ -95,16 +97,68 @@ func (s *CommentService) DeleteComment(userID, commentID uint) error {
 }
 
 func (s *CommentService) LikeComment(userID, commentID uint) error {
-	comment, err := s.repo.FindByID(commentID)
-	if err != nil {
-		return err
-	}
-
-	if comment.IsAI && comment.AIType != nil {
-		if err := s.repo.UpsertPreference(userID, *comment.AIType, 1); err != nil {
+	return s.repo.Transaction(func(txRepo *CommentRepository) error {
+		comment, err := txRepo.FindByID(commentID)
+		if err != nil {
 			return err
 		}
-	}
 
-	return s.repo.IncrementLikeCount(commentID)
+		like, err := txRepo.GetLike(userID, commentID)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		if like != nil {
+			return errors.New("이미 좋아요를 누른 댓글입니다")
+		}
+
+		newLike := &model.CommentLike{
+			UserID:    userID,
+			CommentID: commentID,
+		}
+		if err := txRepo.CreateLike(newLike); err != nil {
+			return err
+		}
+
+		if comment.IsAI && comment.AIType != nil {
+			if err := txRepo.UpsertPreference(userID, *comment.AIType, 1); err != nil {
+				return err
+			}
+		}
+
+		return txRepo.UpdateLikeCount(commentID, 1)
+	})
+}
+
+func (s *CommentService) UnlikeComment(userID, commentID uint) error {
+	return s.repo.Transaction(func(txRepo *CommentRepository) error {
+		comment, err := txRepo.FindByID(commentID)
+		if err != nil {
+			return err
+		}
+
+		_, err = txRepo.GetLike(userID, commentID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("좋아요를 누르지 않은 댓글입니다")
+			}
+			return err
+		}
+
+		if comment.IsAI && comment.AIType != nil {
+			if err := txRepo.UpsertPreference(userID, *comment.AIType, -1); err != nil {
+				return err
+			}
+		}
+
+		if err := txRepo.DeleteLike(userID, commentID); err != nil {
+			return err
+		}
+
+		return txRepo.UpdateLikeCount(commentID, -1)
+	})
+}
+
+func (s *CommentService) GetLikedMap(userID uint, commentsIDs []uint) (map[uint]bool, error) {
+	return s.repo.GetLikedCommentsIDs(userID, commentsIDs)
 }

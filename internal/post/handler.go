@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 	"welog/internal/auth"
 	"welog/internal/model"
 )
@@ -12,14 +13,37 @@ type PostHandler struct {
 	service *PostService
 }
 
-func NewPostHandler(service *PostService) *PostHandler {
-	return &PostHandler{service: service}
+type CommentResponse struct {
+	ID          uint      `json:"id"`
+	UserID      uint      `json:"user_id"`
+	Nickname    string    `json:"nickname"`
+	Description string    `json:"description"`
+	IsAI        bool      `json:"is_ai"`
+	LikeCount   uint      `json:"like_count"`
+	IsLiked     bool      `json:"is_liked"`
+	CreatedAt   time.Time `json:"created_at"`
+	ParentID    *uint     `json:"parent_id"`
+}
+
+type PostDetailResponse struct {
+	ID           uint              `json:"id"`
+	UserID       uint              `json:"user_id"`
+	Title        string            `json:"title"`
+	Description  string            `json:"description"`
+	Type         uint              `json:"type"`
+	CommentCount uint              `json:"comment_count"`
+	CreatedAt    time.Time         `json:"created_at"`
+	Comments     []CommentResponse `json:"comments"`
 }
 
 type CreatePostRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Type        string `json:"type"`
+}
+
+func NewPostHandler(service *PostService) *PostHandler {
+	return &PostHandler{service: service}
 }
 
 // POST /api/posts
@@ -72,6 +96,8 @@ func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/posts/{postId}
 func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
+	userClaims := auth.GetUserFromContext(r.Context())
+
 	postIDStr := r.PathValue("postId")
 	postID, err := strconv.ParseUint(postIDStr, 10, 32)
 	if err != nil {
@@ -85,11 +111,47 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var likedMap map[uint]bool
+	if userClaims != nil {
+		commentIDs := make([]uint, len(post.Comments))
+		for i, c := range post.Comments {
+			commentIDs[i] = c.ID
+		}
+		likedMap, _ = h.service.commentService.GetLikedMap(userClaims.UserID, commentIDs)
+	}
+
+	commentResponses := make([]CommentResponse, len(post.Comments))
+	for i, c := range post.Comments {
+		isLiked := false
+		if likedMap != nil {
+			isLiked = likedMap[c.ID]
+		}
+		commentResponses[i] = CommentResponse{
+			ID:          c.ID,
+			UserID:      c.UserID,
+			Nickname:    c.User.Nickname,
+			Description: c.Description,
+			IsAI:        c.IsAI,
+			LikeCount:   c.LikeCount,
+			IsLiked:     isLiked,
+			CreatedAt:   c.CreatedAt,
+			ParentID:    c.ParentID,
+		}
+	}
+
+	response := PostDetailResponse{
+		ID:           post.ID,
+		UserID:       post.UserID,
+		Title:        post.Title,
+		Description:  post.Description,
+		Type:         post.Type,
+		CommentCount: post.CommentCount,
+		CreatedAt:    post.CreatedAt,
+		Comments:     commentResponses,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"post":     post,
-		"comments": post.Comments,
-	})
+	json.NewEncoder(w).Encode(response)
 }
 
 // DELETE /api/posts/{postId}
