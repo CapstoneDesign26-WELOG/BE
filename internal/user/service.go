@@ -101,3 +101,7 @@ func (s *UserService) RefillDailyTokens() error {
 	const targetCount uint = 3
 	return s.repo.UpdateTokenBelowThreshold(threshold, targetCount)
 }
+
+func (s *UserService) UpdateAIPreference(userID uint, preference uint) error {
+	return s.repo.UpdateAIPreference(userID, preference)
+}

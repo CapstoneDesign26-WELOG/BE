@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 	"welog/internal/auth"
 )
 
@@ -28,7 +29,6 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("X-Accel-Buffering", "no")
 
 	clientChan := make(chan string, 1)
@@ -48,10 +48,15 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(w, "data: {\"type\": \"CONNECTED\"}\n\n")
 	w.(http.Flusher).Flush()
 
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case msg := <-clientChan:
 			fmt.Fprintf(w, "data: %s\n\n", msg)
+			w.(http.Flusher).Flush()
+		case <-ticker.C:
+			fmt.Fprintf(w, ": heartbeat\n\n")
 			w.(http.Flusher).Flush()
 		case <-r.Context().Done():
 			return
