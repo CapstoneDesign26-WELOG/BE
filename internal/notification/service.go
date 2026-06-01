@@ -29,6 +29,7 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("X-Accel-Buffering", "no")
 
 	clientChan := make(chan string, 1)
 	s.mu.Lock()
