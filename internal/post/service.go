@@ -99,13 +99,6 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 			var threadBuilder strings.Builder
 			threadBuilder.WriteString(fmt.Sprintf("-%s (원문)\n", selectedRoot.Description))
 
-			/*
-				for _, c := range post.Comments {
-					if c.ParentID != nil && *c.ParentID == selectedRoot.ID {
-						threadBuilder.WriteString(fmt.Sprintf(" ㄴ %s\n", c.Description))
-					}
-				}
-			*/
 			count := 0
 			for i := len(post.Comments) - 1; i >= 0; i-- {
 				c := post.Comments[i]
@@ -123,34 +116,57 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 		}
 	}
 
-	resp, err := s.clovaClient.GetSingleAIComment(sb.String())
-	if err != nil {
-		log.Printf("AI API 호출 실패: %v", err)
-		return
-	}
+	targetAIType := s.getWeightedAIType(userID)
+	typeCode, _ := ai.GetAITypeInfo(targetAIType)
 
+	var resp string
 	var aiRes struct {
 		ReactionType string `json:"reaction_type"`
 		Comment      string `json:"comment"`
 	}
 
-	cleaned := strings.TrimSpace(resp)
-	cleaned = strings.TrimPrefix(cleaned, "```json")
-	cleaned = strings.TrimPrefix(cleaned, "```")
-	cleaned = strings.TrimSuffix(cleaned, "```")
-	cleaned = strings.TrimSpace(cleaned)
+	maxRetries := 3
+	success := false
 
-	if err := json.Unmarshal([]byte(cleaned), &aiRes); err != nil {
-		log.Printf("AI 응답 파싱 실패: %v", err)
+	for i := 0; i < maxRetries; i++ {
+		resp, err = s.clovaClient.GetSingleAIComment(sb.String(), targetAIType)
+		if err != nil {
+			log.Printf("[Attempt %d] AI API 호출 실패: %v", i+1, err)
+			continue
+		}
+
+		cleaned := strings.TrimSpace(resp)
+		start := strings.Index(cleaned, "{")
+		end := strings.LastIndex(cleaned, "}")
+		if start != -1 && end != -1 && end > start {
+			cleaned = cleaned[start : end+1]
+		}
+
+		if err := json.Unmarshal([]byte(cleaned), &aiRes); err != nil {
+			log.Printf("[Attempt %d] JSON 파싱 실패: %v", i+1, err)
+			continue
+		}
+
+		if aiRes.Comment == "" {
+			log.Printf("[Attempt %d] AI 응답 내용이 비어있음", i+1)
+			continue
+		}
+
+		if aiRes.ReactionType != typeCode {
+			log.Printf("[Attempt %d] 성향 코드 불일치 (Expected: %s, Got: %s)", i+1, typeCode, aiRes.ReactionType)
+			continue
+		}
+
+		success = true
+		break
+	}
+
+	if !success {
+		log.Printf("AI 댓글 생성 최종 실패 (ID: %d), 다음 스텝으로 시도합니다.", postID)
+		time.AfterFunc(getRandomDelay(1, 3), func() {
+			s.handleAICommentStep(userID, postID, remaining-1)
+		})
 		return
-	}
-
-	typeMap := map[string]uint{
-		"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6,
-	}
-	aiType := typeMap[aiRes.ReactionType]
-	if aiType == 0 {
-		aiType = uint(rand.Intn(6) + 1)
 	}
 
 	_, err = s.commentService.CreateComment(comment.CreateCommentParams{
@@ -159,11 +175,14 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 		Description: aiRes.Comment,
 		ParentID:    parentID,
 		IsAI:        true,
-		AIType:      &aiType,
+		AIType:      &targetAIType,
 	})
 
 	if err != nil {
 		log.Printf("AI 댓글 저장 실패: %v", err)
+		time.AfterFunc(getRandomDelay(1, 3), func() {
+			s.handleAICommentStep(userID, postID, remaining-1)
+		})
 		return
 	}
 
@@ -217,4 +236,30 @@ func (s *PostService) DeletePost(userID, postID uint) error {
 	}
 
 	return s.repo.Delete(postID)
+}
+
+func (s *PostService) getWeightedAIType(userID uint) uint {
+	weights := map[uint]int{1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1}
+	if userPrefs, err := s.userService.GetUserPreferences(userID); err == nil {
+		for aiType, score := range userPrefs {
+			if score > 0 {
+				weights[aiType] += score
+			}
+		}
+	}
+
+	totalWeight := 0
+	for _, w := range weights {
+		totalWeight += w
+	}
+
+	r := rand.Intn(totalWeight)
+	cumulative := 0
+	for aiType := uint(1); aiType <= 6; aiType++ {
+		cumulative += weights[aiType]
+		if r < cumulative {
+			return aiType
+		}
+	}
+	return 1
 }

@@ -70,3 +70,23 @@ func (r *UserRepository) RefundToken(userID, amount uint) error {
 		Where("id = ? ", userID).
 		UpdateColumn("token_count", gorm.Expr("token_count + ?", amount)).Error
 }
+
+func (r *UserRepository) GetUserPreferences(userID uint) (map[uint]int, error) {
+	var results []struct {
+		AIType uint
+		Score  int
+	}
+	err := r.db.Model(model.UserPreference{}).
+		Select("ai_type, score").
+		Where("user_id = ?", userID).
+		Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	prefs := make(map[uint]int)
+	for _, res := range results {
+		prefs[res.AIType] = res.Score
+	}
+	return prefs, nil
+}
