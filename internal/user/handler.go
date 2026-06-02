@@ -63,7 +63,7 @@ func (h *UserHandler) GetMyPage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// PATCH /api/users/preference
+// PATCH /api/users/me/preference
 func (h *UserHandler) UpdateAIPreference(w http.ResponseWriter, r *http.Request) {
 	userClaims := auth.GetUserFromContext(r.Context())
 	if userClaims == nil {

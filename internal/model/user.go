@@ -15,7 +15,7 @@ type User struct {
 	Provider     string `gorm:"type:varchar(20);not null;default:'google'"`
 	ProviderID   string `gorm:"type:varchar(255);uniqueIndex;not null"`
 	TokenCount   int    `gorm:"default:10;not null"`
-	AIPreference uint   `gorm:"default:0;not null"`
+	AIPreference uint   `gorm:"column:ai_preference;default:0;not null"`
 	Role         string `gorm:"type:varchar(10);not null;default:'USER'"`
 
 	Preferences []UserPreference `gorm:"foreignKey:UserID"`
