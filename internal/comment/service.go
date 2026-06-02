@@ -5,6 +5,7 @@ import (
 	"errors"
 	"welog/internal/model"
 	"welog/internal/notification"
+	"welog/pkg/filter"
 
 	"gorm.io/gorm"
 )
@@ -43,6 +44,16 @@ func NewCommentService(repo *CommentRepository, postRepo PostRepository, userRep
 }
 
 func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comment, error) {
+	if !params.IsAI {
+		if !filter.ValidateLength(params.Description, 500) {
+			return nil, errors.New("댓글은 최대 500자까지만 작성 가능합니다")
+		}
+
+		if filter.ContainsProfanity(params.Description) {
+			return nil, errors.New("비속어가 포함된 댓글은 작성할 수 없습니다")
+		}
+	}
+
 	comment := &model.Comment{
 		UserID:      params.UserID,
 		PostID:      params.PostID,

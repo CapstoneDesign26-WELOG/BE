@@ -15,6 +15,7 @@ import (
 	"welog/internal/notification"
 	"welog/internal/user"
 	"welog/pkg/ai"
+	"welog/pkg/filter"
 )
 
 type PostService struct {
@@ -78,6 +79,18 @@ func generateCommentDelays(count uint) []time.Duration {
 }
 
 func (s *PostService) CreatePost(userID uint, title, description string, postType uint) (*model.Post, error) {
+	if !filter.ValidateLength(title, 100) {
+		return nil, errors.New("제목은 최대 100자까지만 작성 가능합니다")
+	}
+
+	if !filter.ValidateLength(description, 2000) {
+		return nil, errors.New("내용은 최대 2000자까지만 작성 가능합니다")
+	}
+
+	if filter.ContainsProfanity(title) || filter.ContainsProfanity(description) {
+		return nil, errors.New("비속어가 포함된 게시글은 작성할 수 없습니다")
+	}
+
 	var tokenCost uint = 1
 	if err := s.userService.ConsumeToken(userID, tokenCost); err != nil {
 		return nil, err
