@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 	"welog/internal/comment"
@@ -33,6 +35,48 @@ func NewPostService(repo *PostRepository, userService *user.UserService, comment
 	}
 }
 
+func generateCommentDelays(count uint) []time.Duration {
+	fre1 := 0.50
+	fre2 := 0.30
+
+	c1 := int(math.Round(float64(count) * fre1))
+	c2 := int(math.Round(float64(count) * fre2))
+	c3 := int(count) - c1 - c2
+	if c3 < 0 {
+		c3 = 0
+	}
+
+	var absoluteDelays []time.Duration
+
+	for i := 0; i < c1; i++ {
+		sec := rand.Intn(300)
+		absoluteDelays = append(absoluteDelays, time.Duration(sec)*time.Second)
+	}
+
+	for i := 0; i < c2; i++ {
+		sec := rand.Intn(1500) + 300
+		absoluteDelays = append(absoluteDelays, time.Duration(sec)*time.Second)
+	}
+
+	for i := 0; i < c3; i++ {
+		sec := rand.Intn(1800) + 1800
+		absoluteDelays = append(absoluteDelays, time.Duration(sec)*time.Second)
+	}
+
+	sort.Slice(absoluteDelays, func(i, j int) bool {
+		return absoluteDelays[i] < absoluteDelays[j]
+	})
+
+	var relativeDelays []time.Duration
+	var prev time.Duration = 0
+	for _, d := range absoluteDelays {
+		relativeDelays = append(relativeDelays, d-prev)
+		prev = d
+	}
+
+	return relativeDelays
+}
+
 func (s *PostService) CreatePost(userID uint, title, description string, postType uint) (*model.Post, error) {
 	var tokenCost uint = 1
 	if err := s.userService.ConsumeToken(userID, tokenCost); err != nil {
@@ -40,6 +84,8 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 	}
 
 	aiCount := uint(rand.Intn(3) + 3)
+	delays := generateCommentDelays(aiCount)
+
 	post := &model.Post{
 		UserID:      userID,
 		Title:       title,
@@ -53,22 +99,27 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 		return nil, err
 	}
 
-	delay := getRandomDelay(1, 3)
-	time.AfterFunc(delay, func() {
-		s.handleAICommentStep(userID, post.ID, aiCount)
-	})
+	if len(delays) > 0 {
+		firstDelay := delays[0]
+		time.AfterFunc(firstDelay, func() {
+			s.handleAICommentStep(userID, post.ID, delays[1:])
+		})
+	} else {
+		s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_COMPLETE", "post_id": %d}`, post.ID))
+	}
 
 	return post, nil
 }
 
-func getRandomDelay(st, en int) time.Duration {
-	return time.Duration(rand.Intn(en-st+1)+st) * time.Minute
-}
-
-func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
-	if remaining == 0 {
-		s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_COMPLETE", "post_id": %d}`, postID))
-		return
+func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Duration) {
+	scheduleNext := func() {
+		if len(delays) == 0 {
+			s.notificationService.Notify(userID, fmt.Sprintf(`{"type": "AI_COMMENT_COMPLETE", "post_id": %d}`, postID))
+		} else {
+			time.AfterFunc(delays[0], func() {
+				s.handleAICommentStep(userID, postID, delays[1:])
+			})
+		}
 	}
 
 	post, err := s.repo.FindByID(postID)
@@ -163,9 +214,7 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 
 	if !success {
 		log.Printf("AI 댓글 생성 최종 실패 (ID: %d), 다음 스텝으로 시도합니다.", postID)
-		time.AfterFunc(getRandomDelay(1, 3), func() {
-			s.handleAICommentStep(userID, postID, remaining-1)
-		})
+		scheduleNext()
 		return
 	}
 
@@ -180,16 +229,11 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 
 	if err != nil {
 		log.Printf("AI 댓글 저장 실패: %v", err)
-		time.AfterFunc(getRandomDelay(1, 3), func() {
-			s.handleAICommentStep(userID, postID, remaining-1)
-		})
+		scheduleNext()
 		return
 	}
 
-	nextDelay := getRandomDelay(1, 3)
-	time.AfterFunc(nextDelay, func() {
-		s.handleAICommentStep(userID, postID, remaining-1)
-	})
+	scheduleNext()
 }
 
 func (s *PostService) GetPublicPosts(page, limit int) ([]model.Post, error) {
