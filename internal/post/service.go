@@ -192,7 +192,7 @@ func (s *PostService) handleAICommentStep(userID, postID, remaining uint) {
 	})
 }
 
-func (s *PostService) GetPosts(postType string, page, limit int) ([]model.Post, error) {
+func (s *PostService) GetPublicPosts(page, limit int) ([]model.Post, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -201,15 +201,19 @@ func (s *PostService) GetPosts(postType string, page, limit int) ([]model.Post, 
 	}
 	offset := (page - 1) * limit
 
-	var parsedType uint = 0
-	switch postType {
-	case "PRIVATE":
-		parsedType = 1
-	case "PUBLIC":
-		parsedType = 2
-	}
+	return s.repo.FindAllPublic(offset, limit)
+}
 
-	return s.repo.FindAll(parsedType, offset, limit)
+func (s *PostService) GetPrivatePosts(userID uint, page, limit int) ([]model.Post, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	return s.repo.FindAllPrivate(userID, offset, limit)
 }
 
 func (s *PostService) GetPostDetails(postID uint) (*model.Post, error) {

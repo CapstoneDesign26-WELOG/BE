@@ -78,13 +78,33 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/posts?type=PUBLIC&page=1&limit=20
-func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
-	postType := r.URL.Query().Get("type")
+// GET /api/posts/public?page=1&limit=20
+func (h *PostHandler) GetPublicPosts(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
-	posts, err := h.service.GetPosts(postType, page, limit)
+	posts, err := h.service.GetPublicPosts(page, limit)
+	if err != nil {
+		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
+}
+
+// GET /api/posts/private?page=1&limit=20
+func (h *PostHandler) GetPrivatePosts(w http.ResponseWriter, r *http.Request) {
+	userClaims := auth.GetUserFromContext(r.Context())
+	if userClaims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	posts, err := h.service.GetPrivatePosts(userClaims.UserID, page, limit)
 	if err != nil {
 		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
 		return
