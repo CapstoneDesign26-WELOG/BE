@@ -81,7 +81,7 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 			"comment_description": comment.Description,
 		}
 		jsonBytes, err := json.Marshal(payload)
-		if err == nil {
+		if err == nil && post.UserID != params.UserID {
 			s.notificationService.Notify(post.UserID, string(jsonBytes))
 		}
 	}
