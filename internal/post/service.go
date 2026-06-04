@@ -1,7 +1,6 @@
 package post
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -27,13 +26,16 @@ type PostService struct {
 }
 
 func NewPostService(repo *PostRepository, userService *user.UserService, commentService *comment.CommentService, clovaClient *ai.ClovaClient, notificationService *notification.NotificationService) *PostService {
-	return &PostService{
+	ps := &PostService{
 		repo:                repo,
 		userService:         userService,
 		commentService:      commentService,
 		clovaClient:         clovaClient,
 		notificationService: notificationService,
 	}
+
+	commentService.SetPostReactor(ps)
+	return ps
 }
 
 func generateCommentDelays(count uint) []time.Duration {
@@ -141,15 +143,14 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 		return
 	}
 
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("### [본문 제목]\n%s\n\n### [본문 내용]\n%s\n\n", post.Title, post.Description))
-	sb.WriteString("### [기존 댓글 흐름]\n")
-	if len(post.Comments) == 0 {
-		sb.WriteString("(아직 작성된 댓글 없음)\n")
-	} else {
-		for i, c := range post.Comments {
-			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, c.Description))
-		}
+	ctxData := ai.AIContextData{
+		PostTitle:    post.Title,
+		PostDesc:     post.Description,
+		TargetAIType: s.getWeightedAIType(userID),
+	}
+
+	for _, c := range post.Comments {
+		ctxData.Comments = append(ctxData.Comments, c.Description)
 	}
 
 	var rootComments []model.Comment
@@ -165,81 +166,26 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 			selectedRoot := rootComments[rand.Intn(len(rootComments))]
 			parentID = &selectedRoot.ID
 
-			var threadBuilder strings.Builder
-			threadBuilder.WriteString(fmt.Sprintf("-%s (원문)\n", selectedRoot.Description))
-
+			var tb strings.Builder
+			tb.WriteString(fmt.Sprintf("- %s (원문)\n", selectedRoot.Description))
 			count := 0
 			for i := len(post.Comments) - 1; i >= 0; i-- {
 				c := post.Comments[i]
 				if c.ParentID != nil && *c.ParentID == selectedRoot.ID {
-					threadBuilder.WriteString(fmt.Sprintf(" ㄴ %s\n", c.Description))
+					tb.WriteString(fmt.Sprintf("  ㄴ %s\n", c.Description))
 					count++
-
 					if count >= 4 {
 						break
 					}
 				}
 			}
-
-			sb.WriteString("\n### [특별 지시: 대댓글 작성]\n")
-			sb.WriteString("아래의 댓글 스레드 흐름에 자연스럽게 연결되는 답글(대댓글)을 작성하십시오:\n")
-			sb.WriteString(threadBuilder.String())
+			ctxData.ThreadContext = tb.String()
 		}
 	}
 
-	targetAIType := s.getWeightedAIType(userID)
-	typeCode, _ := ai.GetAITypeInfo(targetAIType)
-	examples := ai.GetRandomExamples(targetAIType, 2)
-
-	sb.WriteString("\n### [말투 예시]\n")
-	for i, ex := range examples {
-		sb.WriteString(fmt.Sprintf("- 예시%d: %s\n", i+1, ex))
-	}
-
-	var resp string
-	var aiRes struct {
-		ReactionType string `json:"reaction_type"`
-		Comment      string `json:"comment"`
-	}
-
-	maxRetries := 3
-	success := false
-
-	for i := 0; i < maxRetries; i++ {
-		resp, err = s.clovaClient.GetSingleAIComment(sb.String(), targetAIType)
-		if err != nil {
-			log.Printf("[Attempt %d] AI API 호출 실패: %v", i+1, err)
-			continue
-		}
-
-		cleaned := strings.TrimSpace(resp)
-		start := strings.Index(cleaned, "{")
-		end := strings.LastIndex(cleaned, "}")
-		if start != -1 && end != -1 && end > start {
-			cleaned = cleaned[start : end+1]
-		}
-
-		if err := json.Unmarshal([]byte(cleaned), &aiRes); err != nil {
-			log.Printf("[Attempt %d] JSON 파싱 실패: %v", i+1, err)
-			continue
-		}
-
-		if aiRes.Comment == "" {
-			log.Printf("[Attempt %d] AI 응답 내용이 비어있음", i+1)
-			continue
-		}
-
-		if aiRes.ReactionType != typeCode {
-			log.Printf("[Attempt %d] 성향 코드 불일치 (Expected: %s, Got: %s)", i+1, typeCode, aiRes.ReactionType)
-			continue
-		}
-
-		success = true
-		break
-	}
-
-	if !success {
-		log.Printf("AI 댓글 생성 최종 실패 (ID: %d), 다음 스텝으로 시도합니다.", postID)
+	aiCommentStr, err := s.clovaClient.GenerateComment(ctxData)
+	if err != nil {
+		log.Printf("AI 댓글 생성 최종 실패 (ID: %d): %v", postID, err)
 		scheduleNext()
 		return
 	}
@@ -247,19 +193,57 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 	_, err = s.commentService.CreateComment(comment.CreateCommentParams{
 		UserID:      1,
 		PostID:      postID,
-		Description: aiRes.Comment,
+		Description: aiCommentStr,
 		ParentID:    parentID,
 		IsAI:        true,
-		AIType:      &targetAIType,
+		AIType:      &ctxData.TargetAIType,
 	})
 
 	if err != nil {
 		log.Printf("AI 댓글 저장 실패: %v", err)
-		scheduleNext()
-		return
 	}
-
 	scheduleNext()
+}
+
+func (s *PostService) ReplyToUserComment(postID, targetCommentID, commentUserID uint, userComment string) {
+	delay := time.Duration(rand.Intn(50)+20) * time.Second
+
+	time.AfterFunc(delay, func() {
+		post, err := s.repo.FindByID(postID)
+		if err != nil {
+			return
+		}
+
+		ctxData := ai.AIContextData{
+			PostTitle:    post.Title,
+			PostDesc:     post.Description,
+			UserComment:  userComment,
+			TargetAIType: s.getWeightedAIType(post.UserID),
+		}
+
+		for _, c := range post.Comments {
+			ctxData.Comments = append(ctxData.Comments, c.Description)
+		}
+
+		aiCommentStr, err := s.clovaClient.GenerateComment(ctxData)
+		if err != nil {
+			log.Printf("[Reactive AI] 실패: %v", err)
+			return
+		}
+
+		_, err = s.commentService.CreateComment(comment.CreateCommentParams{
+			UserID:      1,
+			PostID:      postID,
+			Description: aiCommentStr,
+			ParentID:    &targetCommentID,
+			IsAI:        true,
+			AIType:      &ctxData.TargetAIType,
+		})
+
+		if err == nil {
+			s.notificationService.Notify(commentUserID, fmt.Sprintf(`{"type": "NEW_AI_REPLY", "post_id": %d}`, postID))
+		}
+	})
 }
 
 func (s *PostService) GetPublicPosts(page, limit int) ([]model.Post, error) {
