@@ -191,11 +191,7 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 	typeCode, _ := ai.GetAITypeInfo(targetAIType)
 	examples := ai.GetRandomExamples(targetAIType, 2)
 
-	sb.WriteString("\n[추가 지시사항]\n")
-	sb.WriteString("1. 이미 작성된 기존 댓글들과 똑같거나 비슷한 내용은 절대 반복하지 마\n")
-	sb.WriteString("2. 아래 제공된 [말투 예시]를 참고하여, 실제 커뮤니티 유저처럼 날것의 단어(ㅋㅋ, ㄹㅇ 등)를 쓰고 짧고 간결하게 작성하세요.\n")
-	sb.WriteString("3. 단, 아래 예시의 '내용(토픽)'은 절대 베끼지 말고, 오직 '말투와해분위기'만 따라해야 해!\n\n")
-	sb.WriteString("[말투 예시]\n")
+	sb.WriteString("\n### [말투 예시]\n")
 	for i, ex := range examples {
 		sb.WriteString(fmt.Sprintf("- 예시%d: %s\n", i+1, ex))
 	}
