@@ -9,13 +9,13 @@ import (
 )
 
 type NotificationService struct {
-	clients map[uint]chan string
+	clients map[uint]map[chan string]bool
 	mu      sync.RWMutex
 }
 
 func NewNotificationService() *NotificationService {
 	return &NotificationService{
-		clients: make(map[uint]chan string),
+		clients: make(map[uint]map[chan string]bool),
 	}
 }
 
@@ -31,15 +31,23 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	clientChan := make(chan string, 1)
+	clientChan := make(chan string, 5)
+
 	s.mu.Lock()
-	s.clients[userClaims.UserID] = clientChan
+	if s.clients[userClaims.UserID] == nil {
+		s.clients[userClaims.UserID] = make(map[chan string]bool)
+	}
+	s.clients[userClaims.UserID][clientChan] = true
 	s.mu.Unlock()
 
 	defer func() {
 		s.mu.Lock()
-		if s.clients[userClaims.UserID] == clientChan {
-			delete(s.clients, userClaims.UserID)
+		if chans, exists := s.clients[userClaims.UserID]; exists {
+			delete(chans, clientChan)
+
+			if len(chans) == 0 {
+				delete(s.clients, userClaims.UserID)
+			}
 		}
 		close(clientChan)
 		s.mu.Unlock()
@@ -67,11 +75,17 @@ func (s *NotificationService) Subscribe(w http.ResponseWriter, r *http.Request) 
 func (s *NotificationService) Notify(userID uint, message string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if clientChan, ok := s.clients[userID]; ok {
+
+	chans, ok := s.clients[userID]
+	if !ok || len(chans) == 0 {
+		return
+	}
+
+	for clientChan := range chans {
 		select {
 		case clientChan <- message:
 		default:
-			fmt.Printf("[SSE] 유저 %d의 채널이 꽉 차서 알림이 누락되었습니다.\n", userID)
+			fmt.Printf("[SSE] 유저 %d의 특정 탭 채널이 꽉 차서 알림이 누락되었습니다.\n", userID)
 		}
 	}
 }
