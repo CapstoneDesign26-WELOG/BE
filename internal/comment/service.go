@@ -3,12 +3,17 @@ package comment
 import (
 	"encoding/json"
 	"errors"
+	"math/rand/v2"
 	"welog/internal/model"
 	"welog/internal/notification"
 	"welog/pkg/filter"
 
 	"gorm.io/gorm"
 )
+
+type PostReactor interface {
+	ReplyToUserComment(postID, targetCommentID, commentUserID uint, userComment string)
+}
 
 type PostRepository interface {
 	FindByID(id uint) (*model.Post, error)
@@ -23,6 +28,7 @@ type CommentService struct {
 	postRepo            PostRepository
 	userRepo            UserRepository
 	notificationService *notification.NotificationService
+	postReactor         PostReactor
 }
 
 type CreateCommentParams struct {
@@ -43,12 +49,15 @@ func NewCommentService(repo *CommentRepository, postRepo PostRepository, userRep
 	}
 }
 
+func (s *CommentService) SetPostReactor(pr PostReactor) {
+	s.postReactor = pr
+}
+
 func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comment, error) {
 	if !params.IsAI {
 		if !filter.ValidateLength(params.Description, 500) {
 			return nil, errors.New("댓글은 최대 500자까지만 작성 가능합니다")
 		}
-
 		if filter.ContainsProfanity(params.Description) {
 			return nil, errors.New("비속어가 포함된 댓글은 작성할 수 없습니다")
 		}
@@ -65,6 +74,12 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 
 	if err := s.repo.Create(comment); err != nil {
 		return nil, err
+	}
+
+	if !params.IsAI && params.ParentID == nil && s.postReactor != nil {
+		if rand.Float32() < 0.3 {
+			go s.postReactor.ReplyToUserComment(params.PostID, comment.ID, params.UserID, params.Description)
+		}
 	}
 
 	post, err := s.postRepo.FindByID(params.PostID)
