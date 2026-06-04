@@ -142,9 +142,14 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("[글 제목]: %s\n[글 내용]: %s\n\n[기존 댓글 흐름]\n", post.Title, post.Description))
-	for _, c := range post.Comments {
-		sb.WriteString(fmt.Sprintf("[닉네임: %s] - %s\n", c.User.Nickname, c.Description))
+	sb.WriteString(fmt.Sprintf("### [본문 제목]\n%s\n\n### [본문 내용]\n%s\n\n", post.Title, post.Description))
+	sb.WriteString("### [기존 댓글 흐름]\n")
+	if len(post.Comments) == 0 {
+		sb.WriteString("(아직 작성된 댓글 없음)\n")
+	} else {
+		for i, c := range post.Comments {
+			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, c.Description))
+		}
 	}
 
 	var rootComments []model.Comment
@@ -176,12 +181,20 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 				}
 			}
 
-			sb.WriteString(fmt.Sprintf("\n(특별 지시: 위 댓글들 중 다음 스레드에 자연스럽게 이어지는 답글 형태로 작성해줘:\n%s)", threadBuilder.String()))
+			sb.WriteString("\n### [특별 지시: 대댓글 작성]\n")
+			sb.WriteString("아래의 댓글 스레드 흐름에 자연스럽게 연결되는 답글(대댓글)을 작성하십시오:\n")
+			sb.WriteString(threadBuilder.String())
 		}
 	}
 
 	targetAIType := s.getWeightedAIType(userID)
 	typeCode, _ := ai.GetAITypeInfo(targetAIType)
+	examples := ai.GetRandomExamples(targetAIType, 2)
+
+	sb.WriteString("\n### [말투 예시]\n")
+	for i, ex := range examples {
+		sb.WriteString(fmt.Sprintf("- 예시%d: %s\n", i+1, ex))
+	}
 
 	var resp string
 	var aiRes struct {
