@@ -17,6 +17,8 @@ import (
 	"welog/pkg/filter"
 )
 
+var ErrProfanityDetected = errors.New("비속어가 포함된 게시글은 작성하실 수 없습니다")
+
 type PostService struct {
 	repo                *PostRepository
 	userService         *user.UserService
@@ -90,7 +92,7 @@ func (s *PostService) CreatePost(userID uint, title, description string, postTyp
 	}
 
 	if filter.ContainsProfanity(title) || filter.ContainsProfanity(description) {
-		return nil, errors.New("비속어가 포함된 게시글은 작성할 수 없습니다")
+		return nil, ErrProfanityDetected
 	}
 
 	var tokenCost uint = 1
