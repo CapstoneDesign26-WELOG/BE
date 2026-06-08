@@ -49,6 +49,13 @@ type AIContextData struct {
 	TargetAIType  uint
 }
 
+type AICommentModel struct {
+	ReactionType string `json:"reaction_type"`
+	Comment      string `json:"comment"`
+	SystemPrompt string `json:"system_prompt"`
+	UserPrompt   string `json:"user_prompt"`
+}
+
 func NewClovaClient() *ClovaClient {
 	return &ClovaClient{
 		APIKey: os.Getenv("CLOVA_STUDIO_API_KEY"),
@@ -56,7 +63,7 @@ func NewClovaClient() *ClovaClient {
 	}
 }
 
-func (c *ClovaClient) GenerateComment(ctxData AIContextData) (string, error) {
+func (c *ClovaClient) GenerateComment(ctxData AIContextData) (AICommentModel, error) {
 	typeCode, typeDesc := GetAITypeInfo(ctxData.TargetAIType)
 	examples := GetRandomExamples(ctxData.TargetAIType, 2)
 
@@ -155,10 +162,15 @@ func (c *ClovaClient) GenerateComment(ctxData AIContextData) (string, error) {
 			continue
 		}
 
-		return aiRes.Comment, nil
+		return AICommentModel{
+			ReactionType: aiRes.ReactionType,
+			Comment:      aiRes.Comment,
+			SystemPrompt: systemPrompt,
+			UserPrompt:   sb.String(),
+		}, nil
 	}
 
-	return "", fmt.Errorf("AI 댓글 생성 최대 재시도 횟수 초과")
+	return AICommentModel{}, fmt.Errorf("AI 댓글 생성 최대 재시도 횟수 초과")
 }
 
 func (c *ClovaClient) callAPI(systemPrompt, userPrompt string) (string, error) {

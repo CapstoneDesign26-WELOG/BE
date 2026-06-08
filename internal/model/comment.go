@@ -16,6 +16,9 @@ type Comment struct {
 	IsAI        bool   `gorm:"default:false;not null"`
 	AIType      *uint
 
+	SystemPrompt string `gorm:"type:text"`
+	UserPrompt   string `gorm:"type:text"`
+
 	LikeCount uint `gorm:"default:0;check:like_count >= 0"`
 
 	User   User     `gorm:"foreignKey:UserID"`
