@@ -34,12 +34,14 @@ type CommentService struct {
 }
 
 type CreateCommentParams struct {
-	UserID      uint
-	PostID      uint
-	Description string
-	ParentID    *uint
-	IsAI        bool
-	AIType      *uint
+	UserID       uint
+	PostID       uint
+	Description  string
+	ParentID     *uint
+	IsAI         bool
+	AIType       *uint
+	SystemPrompt string
+	UserPrompt   string
 }
 
 func NewCommentService(repo *CommentRepository, postRepo PostRepository, userRepo UserRepository, notificationService *notification.NotificationService) *CommentService {
@@ -66,12 +68,14 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 	}
 
 	comment := &model.Comment{
-		UserID:      params.UserID,
-		PostID:      params.PostID,
-		Description: params.Description,
-		ParentID:    params.ParentID,
-		IsAI:        params.IsAI,
-		AIType:      params.AIType,
+		UserID:       params.UserID,
+		PostID:       params.PostID,
+		Description:  params.Description,
+		ParentID:     params.ParentID,
+		IsAI:         params.IsAI,
+		AIType:       params.AIType,
+		SystemPrompt: params.SystemPrompt,
+		UserPrompt:   params.UserPrompt,
 	}
 
 	if err := s.repo.Create(comment); err != nil {

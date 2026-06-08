@@ -185,7 +185,7 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 		}
 	}
 
-	aiCommentStr, err := s.clovaClient.GenerateComment(ctxData)
+	aiResult, err := s.clovaClient.GenerateComment(ctxData)
 	if err != nil {
 		log.Printf("AI 댓글 생성 최종 실패 (ID: %d): %v", postID, err)
 		scheduleNext()
@@ -193,12 +193,14 @@ func (s *PostService) handleAICommentStep(userID, postID uint, delays []time.Dur
 	}
 
 	_, err = s.commentService.CreateComment(comment.CreateCommentParams{
-		UserID:      1,
-		PostID:      postID,
-		Description: aiCommentStr,
-		ParentID:    parentID,
-		IsAI:        true,
-		AIType:      &ctxData.TargetAIType,
+		UserID:       1,
+		PostID:       postID,
+		Description:  aiResult.Comment,
+		ParentID:     parentID,
+		IsAI:         true,
+		AIType:       &ctxData.TargetAIType,
+		SystemPrompt: aiResult.SystemPrompt,
+		UserPrompt:   aiResult.UserPrompt,
 	})
 
 	if err != nil {
@@ -227,19 +229,21 @@ func (s *PostService) ReplyToUserComment(postID, targetCommentID, commentUserID 
 			ctxData.Comments = append(ctxData.Comments, c.Description)
 		}
 
-		aiCommentStr, err := s.clovaClient.GenerateComment(ctxData)
+		aiResult, err := s.clovaClient.GenerateComment(ctxData)
 		if err != nil {
 			log.Printf("[Reactive AI] 실패: %v", err)
 			return
 		}
 
 		_, err = s.commentService.CreateComment(comment.CreateCommentParams{
-			UserID:      1,
-			PostID:      postID,
-			Description: aiCommentStr,
-			ParentID:    &targetCommentID,
-			IsAI:        true,
-			AIType:      &ctxData.TargetAIType,
+			UserID:       1,
+			PostID:       postID,
+			Description:  aiResult.Comment,
+			ParentID:     &targetCommentID,
+			IsAI:         true,
+			AIType:       &ctxData.TargetAIType,
+			SystemPrompt: aiResult.SystemPrompt,
+			UserPrompt:   aiResult.UserPrompt,
 		})
 
 		if err == nil {
