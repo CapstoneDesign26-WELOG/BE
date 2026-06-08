@@ -11,6 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrProfanityDetected = errors.New("비속어가 포함된 게시글은 작성하실 수 없습니다")
+
 type PostReactor interface {
 	ReplyToUserComment(postID, targetCommentID, commentUserID uint, userComment string)
 }
@@ -59,7 +61,7 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 			return nil, errors.New("댓글은 최대 500자까지만 작성 가능합니다")
 		}
 		if filter.ContainsProfanity(params.Description) {
-			return nil, errors.New("비속어가 포함된 댓글은 작성할 수 없습니다")
+			return nil, ErrProfanityDetected
 		}
 	}
 
@@ -77,7 +79,7 @@ func (s *CommentService) CreateComment(params CreateCommentParams) (*model.Comme
 	}
 
 	if !params.IsAI && params.ParentID == nil && s.postReactor != nil {
-		if rand.Float32() < 0.3 {
+		if rand.Float32() < 0.8 {
 			go s.postReactor.ReplyToUserComment(params.PostID, comment.ID, params.UserID, params.Description)
 		}
 	}

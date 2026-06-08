@@ -2,6 +2,7 @@ package post
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,6 +68,10 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	post, err := h.service.CreatePost(userClaims.UserID, req.Title, req.Description, postType)
 	if err != nil {
+		if errors.Is(err, ErrProfanityDetected) {
+			http.Error(w, "비속어가 포함되어 있습니다.", http.StatusUnprocessableEntity)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

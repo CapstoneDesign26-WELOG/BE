@@ -2,6 +2,7 @@ package comment
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"welog/internal/auth"
@@ -53,6 +54,10 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 
 	comment, err := h.service.CreateComment(params)
 	if err != nil {
+		if errors.Is(err, ErrProfanityDetected) {
+			http.Error(w, "비속어가 포함되어 있습니다.", http.StatusUnprocessableEntity)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
